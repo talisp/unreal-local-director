@@ -1,0 +1,51 @@
+{
+ "secao": "s3_captura",
+ "quando": "2026-10-06T15:14:25",
+ "versao_codigo": "23245ed8e586",
+ "resultados": [
+  {
+   "teste": "captura OFF: caminho antigo (sem 'estabilidade')",
+   "esperado": false,
+   "observado": false,
+   "ok": true,
+   "detalhe": {
+    "ok": true,
+    "chamadas": 111,
+    "segundos": 22.9,
+    "gap": -0.1,
+    "estab": false,
+    "obs": null
+   }
+  },
+  {
+   "teste": "captura ON: caminho novo declarado no relatório",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": {
+    "ok": true,
+    "chamadas": 112,
+    "segundos": 41.0,
+    "gap": -0.1,
+    "estab": true,
+    "obs": null
+   }
+  },
+  {
+   "teste": "custo OFF x ON (informativo)",
+   "observado": {
+    "OFF": [
+     111,
+     22.9,
+     -0.1
+    ],
+    "ON": [
+     112,
+     41.0,
+     -0.1
+    ]
+   },
+   "ok": true
+  }
+ ]
+}

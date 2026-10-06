@@ -1,0 +1,91 @@
+{
+ "secao": "s3_deriva",
+ "quando": "2026-10-06T15:09:26",
+ "versao_codigo": "23245ed8e586",
+ "resultados": [
+  {
+   "teste": "deriva pelas pernas: Talking_2",
+   "esperado": "deriva_xy PASS",
+   "observado": [
+    "PASS",
+    5.2
+   ],
+   "ok": true,
+   "detalhe": {
+    "pes_plantados": 0.833,
+    "aplicar_ok": true,
+    "aplicar_bloqueio": null
+   }
+  },
+  {
+   "teste": "restauração depois de Talking_2",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "deriva pelas pernas: Waving_2",
+   "esperado": "deriva_xy PASS",
+   "observado": [
+    "PASS",
+    2.4
+   ],
+   "ok": true,
+   "detalhe": {
+    "pes_plantados": 0.823,
+    "aplicar_ok": true,
+    "aplicar_bloqueio": null
+   }
+  },
+  {
+   "teste": "restauração depois de Waving_2",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "deriva pelas pernas: Hands_Forward_Gesture",
+   "esperado": "deriva_xy PASS",
+   "observado": [
+    "PASS",
+    2.9
+   ],
+   "ok": true,
+   "detalhe": {
+    "pes_plantados": 0.851,
+    "aplicar_ok": true,
+    "aplicar_bloqueio": null
+   }
+  },
+  {
+   "teste": "restauração depois de Hands_Forward_Gesture",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "deriva pelas pernas: Walking",
+   "esperado": "deriva_xy FAIL",
+   "observado": [
+    "FAIL",
+    "saiu da janela de medida"
+   ],
+   "ok": true,
+   "detalhe": {
+    "pes_plantados": null,
+    "aplicar_ok": true,
+    "aplicar_bloqueio": null
+   }
+  },
+  {
+   "teste": "restauração depois de Walking",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": null
+  }
+ ]
+}

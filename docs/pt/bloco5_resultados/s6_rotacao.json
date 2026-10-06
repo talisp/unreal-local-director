@@ -1,0 +1,199 @@
+{
+ "secao": "s6_rotacao",
+ "quando": "2026-10-06T17:42:16",
+ "versao_codigo": "d3fda03f0ebe",
+ "resultados": [
+  {
+   "teste": "rotação (cópia dos dados reais): arquivou e nada sumiu",
+   "esperado": 138,
+   "observado": 138,
+   "ok": true,
+   "detalhe": {
+    "arquivados": 0,
+    "protegidos": 138
+   }
+  },
+  {
+   "teste": "rotação: estado do detector igual em todas as linhas reais",
+   "esperado": {
+    "aplicar_clipe": [
+     false,
+     null
+    ],
+    "b5-dep": [
+     false,
+     null
+    ],
+    "b5-espera": [
+     false,
+     null
+    ],
+    "b5-espera-sup": [
+     false,
+     null
+    ],
+    "b5-espera-sup-1736": [
+     false,
+     null
+    ],
+    "b5-limite": [
+     false,
+     null
+    ],
+    "b5-nome-a": [
+     false,
+     null
+    ],
+    "b5-nome-a-1736": [
+     false,
+     null
+    ],
+    "b5-nome-b": [
+     false,
+     null
+    ],
+    "b5-nome-b-1736": [
+     false,
+     null
+    ],
+    "b5-real": [
+     false,
+     null
+    ],
+    "b5-smoke": [
+     false,
+     null
+    ],
+    "buscar_clipe": [
+     false,
+     null
+    ],
+    "capturar_evidencia": [
+     false,
+     null
+    ],
+    "importar_clipe": [
+     false,
+     null
+    ],
+    "inspecionar_cena": [
+     false,
+     null
+    ],
+    "medir_personagem": [
+     false,
+     null
+    ]
+   },
+   "observado": {
+    "aplicar_clipe": [
+     false,
+     null
+    ],
+    "b5-dep": [
+     false,
+     null
+    ],
+    "b5-espera": [
+     false,
+     null
+    ],
+    "b5-espera-sup": [
+     false,
+     null
+    ],
+    "b5-espera-sup-1736": [
+     false,
+     null
+    ],
+    "b5-limite": [
+     false,
+     null
+    ],
+    "b5-nome-a": [
+     false,
+     null
+    ],
+    "b5-nome-a-1736": [
+     false,
+     null
+    ],
+    "b5-nome-b": [
+     false,
+     null
+    ],
+    "b5-nome-b-1736": [
+     false,
+     null
+    ],
+    "b5-real": [
+     false,
+     null
+    ],
+    "b5-smoke": [
+     false,
+     null
+    ],
+    "buscar_clipe": [
+     false,
+     null
+    ],
+    "capturar_evidencia": [
+     false,
+     null
+    ],
+    "importar_clipe": [
+     false,
+     null
+    ],
+    "inspecionar_cena": [
+     false,
+     null
+    ],
+    "medir_personagem": [
+     false,
+     null
+    ]
+   },
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "rotação: votos iguais",
+   "esperado": {
+    "L-ver-01": {
+     "positivos": 1,
+     "negativos": 0
+    },
+    "_resolvidas": [
+     "L-ver-01@b5-real@1791310865.176"
+    ]
+   },
+   "observado": {
+    "L-ver-01": {
+     "positivos": 1,
+     "negativos": 0
+    },
+    "_resolvidas": [
+     "L-ver-01@b5-real@1791310865.176"
+    ]
+   },
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "rotação: relatórios arquivados relidos do arquivo morto",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "rotação: regressão rastreável (índice conta resultados)",
+   "esperado": ">= arquivados",
+   "observado": 128,
+   "ok": true,
+   "detalhe": null
+  }
+ ]
+}

@@ -1,0 +1,5 @@
+produção: {'ambiente': {'codigo': '<local>', 'estudio': 'v2', 'estudio_xy': [10000.0, -3000.0], 'versao_codigo': '23245ed8e586'}, 'ok': True, 'altura': 178.2, 'gap': -0.5, 'area': 6476}
+outro:    {'ambiente': {'codigo': '<local>', 'estudio': 'v2', 'estudio_xy': [20000.0, -3000.0], 'versao_codigo': '3410d312f186'}, 'ok': True, 'altura': 178.2, 'gap': -0.1, 'area': 6350}
+PARIDADE OK
+
+[exited with code 0]

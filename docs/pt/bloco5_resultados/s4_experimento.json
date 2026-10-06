@@ -1,0 +1,74 @@
+{
+ "secao": "s4_experimento",
+ "quando": "2026-10-06T15:17:29",
+ "versao_codigo": "23245ed8e586",
+ "resultados": [
+  {
+   "teste": "worktree do experimento criado do master do sandbox de teste",
+   "esperado": "<local>",
+   "observado": "<local>",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "corrida real: código usado é o do worktree (sandbox de teste), nunca a produção",
+   "esperado": "worktree",
+   "observado": [
+    "codigo: <local> versao: 3410d312f186"
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "corrida real: resultado da ferramenta",
+   "esperado": "2/2 e saída 0",
+   "observado": [
+    [
+     2,
+     2
+    ],
+    0
+   ],
+   "ok": true,
+   "detalhe": "relatorio_id: 20261006-151625-49872-2\nrelatorio_id: 20261006-151650-49872-3\ncodigo: <local> versao: 3410d312f186\n2/2 testes ok\n"
+  },
+  {
+   "teste": "corrida real: relatório real associado (ids)",
+   "esperado": "2 ids",
+   "observado": [
+    "20261006-151625-49872-2",
+    "20261006-151650-49872-3"
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "segundo processo lê o estado persistido",
+   "esperado": "fechado",
+   "observado": "fechado",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "recusa real: terceira corrida",
+   "esperado": "recusa",
+   "observado": "limite de 2 corridas atingido: feche o experimento e registr",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "recusa real: dependência não integrada (exp5 do Hermes)",
+   "esperado": "recusa",
+   "observado": "dependência 'origin/exp/captura-estavel' ainda NÃO está integrada no m",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "guarda do sandbox de teste intacta (master)",
+   "esperado": "ce655a430a692a9d26a04059e81b85a2271c5c2d171e71ec50f943e729b34892",
+   "observado": "ce655a430a692a9d26a04059e81b85a2271c5c2d171e71ec50f943e729b34892",
+   "ok": true,
+   "detalhe": null
+  }
+ ]
+}

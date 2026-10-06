@@ -12,6 +12,12 @@ These are **Blender** projects (Python `bpy`). Nothing in them runs in Unreal: w
 - **Mixamo**-style characters and animation clips (Adobe) — not redistributed.
 - Python libraries: `mcp`, `numpy`, `Pillow`, `jsonschema`, `imageio-ffmpeg`.
 
+## Studied for the v0.0.3 plan (no code copied yet)
+- **[ezesubu/VERA](https://github.com/ezesubu/VERA)** (MIT, © 2026 EazyLabs / maVERAick), commit `8eeb1e7` — planned source of adapted code (isolated actor capture, retargeting, scene mood). When code is adapted, its license and per-file attribution will be added under `third_party/`.
+- **[oliver-io/unreal-harness](https://github.com/oliver-io/unreal-harness)** (MIT, © 2026 Oliver Carrillo), commit `09a6bba` — gates, dry-run, closed error taxonomy, progressive disclosure, real-editor tests with a coverage oracle.
+- **[Aethyr](https://aethyr.gg)** by Doug Fessler — ideas only: preview ops, batch rollback, backup ring, read-only mode and auditor.
+- **[unrealcv/unrealcv](https://github.com/unrealcv/unrealcv)** (MIT) — reference for object masks and bone readout.
+
 ## People and agents
 - **Talis** — project owner, direction, the "parallel studio" measurement idea.
 - **Claude Code** (Anthropic) — implementation, tests, analysis.

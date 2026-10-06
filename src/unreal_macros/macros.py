@@ -34,33 +34,57 @@ PRAZO_MACRO_S = 1500
 _pilha = {"n": 0, "cam": None, "trava": False}
 
 
+_versao = {"sha": None}
+
+
+def versao_codigo() -> str:
+    """Impressão digital do pacote (sha256 curto dos .py de unreal_macros, em ordem): a regressão sabe se o código
+    mudou desde o último resultado conhecido (v0.0.2, bloco 4)."""
+    if _versao["sha"] is None:
+        import glob
+        import hashlib
+        h = hashlib.sha256()
+        for arq in sorted(glob.glob(os.path.join(os.path.dirname(os.path.abspath(__file__)), "*.py"))):
+            h.update(os.path.basename(arq).encode())
+            h.update(open(arq, "rb").read().replace(b"\r\n", b"\n"))
+        _versao["sha"] = h.hexdigest()[:12]
+    return _versao["sha"]
+
+
+def _ambiente() -> dict:
+    """Declarado em TODO relatório: de onde veio a medida (06/10: sandbox mediu no estúdio v1 sem ninguém perceber)."""
+    return {"codigo": os.path.abspath(os.path.join(os.path.dirname(__file__), "..")),
+            "estudio": "v2" if _estudio_v2_ligado() else "v1", "estudio_xy": list(ESTUDIO), "versao_codigo": versao_codigo()}
+
+
+class PausaAtiva(RuntimeError):
+    """O supervisor pausou o Director (violação): espera pelo operador."""
+
+
+def pausa_ativa() -> dict | None:
+    """PAUSA escrita pelo supervisor (violação de política): nenhuma macro de Unreal nem experimento roda até o
+    operador remover o arquivo. Bloqueio NÃO destrutivo."""
+    arq = os.path.join(RAIZ_WORK, "supervisor", "PAUSA")
+    if not os.path.exists(arq):
+        return None
+    try:
+        return json.load(open(arq, encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {"motivo": "arquivo PAUSA ilegível (tratado como pausa)"}
+
+
 def _pegar_trava(nome: str):
-    """Trava de um operador por vez no Unreal (política, regra 9). Trava velha (> 40 min) é tomada."""
-    os.makedirs(RAIZ_WORK, exist_ok=True)
-    for _ in range(2):
-        try:
-            fd = os.open(TRAVA, os.O_CREAT | os.O_EXCL | os.O_WRONLY)
-            os.write(fd, json.dumps({"pid": os.getpid(), "macro": nome, "desde": time.time()}).encode())
-            os.close(fd)
-            return
-        except FileExistsError:
-            try:
-                info = json.load(open(TRAVA, encoding="utf-8"))
-            except Exception:
-                info = {"desde": 0}
-            if time.time() - info.get("desde", 0) > 2400 or info.get("pid") == os.getpid():
-                os.remove(TRAVA)
-                continue
-            raise RuntimeError(f"Unreal ocupado por outro operador ({info}); espere ou confira com o operador")
-    raise RuntimeError("não consegui a trava do Unreal")
+    """Trava de um operador por vez no Unreal (política, regra 9). v0.0.2: só assume a trava de um dono
+    COMPROVADAMENTE morto (pid inexistente ou reaproveitado); idade da trava não é prova (unreal_macros.trava)."""
+    from . import trava
+    trava.pegar(TRAVA, nome, log=os.path.join(RAIZ_WORK, "trava.log"))
 
 
 def _soltar_trava():
-    try:
-        if json.load(open(TRAVA, encoding="utf-8")).get("pid") == os.getpid():
-            os.remove(TRAVA)
-    except Exception:
-        pass
+    from . import trava
+    trava.soltar(TRAVA)
+
+
 
 
 def cliente() -> Client:
@@ -76,12 +100,16 @@ def macro(fn):
     def wrapper(*args, contexto=None, **kwargs):
         c = cliente()
         n0, t0 = len(c.log), time.time()
-        rel = {"macro": fn.__name__, "ok": False, "medidas": {}, "evidencias": [], "avisos": [],
-               "bloqueio": None, "contexto": contexto or {}}
+        rel = {"macro": fn.__name__, "ok": False, "medidas": {}, "evidencias": [], "avisos": [], "ambiente": _ambiente(),
+               "bloqueio": None, "contexto": contexto or {},
+               "chamada": {"args": _serializavel(list(args)), "kwargs": _serializavel(kwargs)}}  # alvo (v0.0.2 b3)
         externo = _pilha["n"] == 0
         _pilha["n"] += 1
         try:
             if externo and getattr(fn, "_usa_unreal", True):
+                pausa = pausa_ativa()
+                if pausa:
+                    raise PausaAtiva(f"PAUSADO pelo supervisor: {pausa.get('motivo')} — só o operador libera")
                 _pegar_trava(fn.__name__)
                 _pilha["trava"] = True
                 c.prazo = time.time() + PRAZO_MACRO_S
@@ -101,6 +129,11 @@ def macro(fn):
         except Exception as e:  # qualquer falha vira bloqueio no relatório, nunca exceção para o Hermes
             rel["ok"] = False
             rel["bloqueio"] = f"{type(e).__name__}: {str(e)[:500]}"
+            if type(e).__name__ == "TravaOcupada":  # espera legítima declarada pela ferramenta (v0.0.2 b3)
+                rel["espera"] = {"tipo": "trava", "motivo": e.estado.get("motivo"),
+                                 "dono_pid": (e.estado.get("info") or {}).get("pid")}
+            elif isinstance(e, PausaAtiva):  # bloco 5: PAUSA é espera pelo operador, não tentativa do agente
+                rel["espera"] = {"tipo": "pausa", "motivo": str(e)}
         finally:
             _pilha["n"] -= 1
             if externo:
@@ -117,8 +150,39 @@ def macro(fn):
                     _pilha["trava"] = False
         rel["chamadas"] = len(c.log) - n0
         rel["segundos"] = round(time.time() - t0, 1)
+        rel["quando_ts"] = round(time.time(), 3)  # bloco 5: ordem fina entre fontes (o id só tem segundos)
+        if externo:
+            _guardar_relatorio(rel)
         return rel
     return wrapper
+
+
+_seq_relatorio = {"n": 0}
+
+
+def _serializavel(o):
+    """Cópia JSON do relatório sem campos internos ('_*', máscaras numpy)."""
+    if isinstance(o, dict):
+        return {k: _serializavel(v) for k, v in o.items() if not str(k).startswith("_")}
+    if isinstance(o, (list, tuple)):
+        return [_serializavel(v) for v in o]
+    if isinstance(o, (str, int, float, bool)) or o is None:
+        return o
+    return str(o)
+
+
+def _guardar_relatorio(rel: dict):
+    """v0.0.2: todo relatório de macro externa ganha um id e é gravado em work/relatorios/<id>.json, para o
+    registrar_tentativa ler o relatório REAL (sem o agente redigitar números). Falha aqui nunca derruba a macro."""
+    _seq_relatorio["n"] += 1
+    rel["id"] = f"{dt.datetime.now():%Y%m%d-%H%M%S}-{os.getpid()}-{_seq_relatorio['n']}"
+    try:
+        pasta = os.path.join(RAIZ_WORK, "relatorios")
+        os.makedirs(pasta, exist_ok=True)
+        with open(os.path.join(pasta, rel["id"] + ".json"), "w", encoding="utf-8") as f:
+            json.dump(_serializavel(rel), f, ensure_ascii=False)
+    except Exception as e:  # noqa: BLE001
+        rel["avisos"].append(f"relatório não guardado em disco: {e}")
 
 
 # ---------- auxiliares (camada atômica, nunca expostas ao Hermes) ----------
@@ -259,6 +323,43 @@ def _vizinhos_proximos(a: dict, raio: float = 250) -> list:
     return out
 
 
+CAPTURA_ESTAVEL = os.environ.get("ULD_CAPTURA_ESTAVEL", "0") == "1"  # exp5 (06/10): +12,6% chamadas sem ganho comprovado; desligada
+
+
+def _png_rgb(b: bytes):
+    import io
+    import numpy as _np
+    from PIL import Image
+    return _np.asarray(Image.open(io.BytesIO(b)).convert("RGB")).astype(_np.int16)
+
+
+def _capta_estavel(cam: dict, rot: dict, tol_med: float = 3.0, tentativas: int = 4, pausa: float = 0.25,
+                   passo: int = 7, aquecer: bool = True):
+    """exp5 (Hermes, sandbox 06/10): captura até duas imagens seguidas concordarem (diferença média por pixel,
+    3 canais, grade 7x7 <= tol_med), com teto de tentativas. aquecer=False descarta a 1a captura sem comparar.
+    Devolve ((anterior, atual), diferença, quadros_usados). Só usada com CAPTURA_ESTAVEL ligada."""
+    import numpy as _np
+    anterior = _captura(cam, rot)
+    quadros = 1
+    if not aquecer:
+        time.sleep(pausa)
+        anterior = _captura(cam, rot)
+        quadros += 1
+    d = float("inf")
+    atual = anterior
+    for _ in range(tentativas):
+        time.sleep(pausa)
+        atual = _captura(cam, rot)
+        quadros += 1
+        a = _png_rgb(anterior)[::passo, ::passo]
+        b = _png_rgb(atual)[::passo, ::passo]
+        d = float(_np.abs(a - b).sum()) / (a.shape[0] * a.shape[1])
+        if d <= tol_med:
+            return (anterior, atual), round(d, 2), quadros
+        anterior = atual
+    return (anterior, atual), round(d, 2), quadros
+
+
 def _captura(cam: dict, rot: dict):
     cap = cliente().call(APP, "CaptureViewport", captureTransform={"location": cam, "rotation": rot, "scale": {"x": 1, "y": 1, "z": 1}},
                          annotations={"gridSpacing": 0, "maxLabelDistance": 0})
@@ -327,19 +428,28 @@ def _silhueta(a: dict, vista: str = "frontal", salvar: str = "", mascara_pernas:
     sombra = _props(a, ["castShadow"]).get("castShadow", True)
     try:  # sem sombra só durante a medida (a sombra no piso seria lida como pés)
         cliente().call(OBJECT, "set_properties", instance=comp, values=json.dumps({"castShadow": False}))
-        time.sleep(0.2)
-        if aquecer:  # 06/10 (Astra): a 1a captura depois de mexer na cópia saía instável (-18 cm, depois +0,2)
-            _captura(cam, rot)
-        com = _captura(cam, rot)
-        cliente().call(OBJECT, "set_properties", instance=comp, values=json.dumps({"bVisible": False}))
-        time.sleep(0.3)
-        sem1 = _captura(cam, rot)
-        sem2 = _captura(cam, rot)
+        estab = None
+        if CAPTURA_ESTAVEL:  # exp5, desligado por padrão
+            (_c0, com), d_com, n_com = _capta_estavel(cam, rot, aquecer=aquecer)
+            cliente().call(OBJECT, "set_properties", instance=comp, values=json.dumps({"bVisible": False}))
+            (sem1, sem2), d_sem, n_sem = _capta_estavel(cam, rot, aquecer=False)
+            estab = {"com_dif": d_com, "com_quadros": n_com, "sem_dif": d_sem, "sem_quadros": n_sem}
+        else:
+            time.sleep(0.2)
+            if aquecer:  # 06/10 (Astra): a 1a captura depois de mexer na cópia saía instável (-18 cm, depois +0,2)
+                _captura(cam, rot)
+            com = _captura(cam, rot)
+            cliente().call(OBJECT, "set_properties", instance=comp, values=json.dumps({"bVisible": False}))
+            time.sleep(0.3)
+            sem1 = _captura(cam, rot)
+            sem2 = _captura(cam, rot)
     finally:
         cliente().call(OBJECT, "set_properties", instance=comp, values=json.dumps({"bVisible": True, "castShadow": sombra}))
     A, B1, B2 = (np.asarray(Image.open(io.BytesIO(b)).convert("RGB")).astype(int) for b in (com, sem1, sem2))
     h, w, _ = A.shape
     out = {"camera": cam, "piso_z": round(piso, 1)}
+    if estab:
+        out["estabilidade"] = estab
     if len(regua) < 5:
         out["medido"] = False
         return out
@@ -381,7 +491,8 @@ def _silhueta(a: dict, vista: str = "frontal", salvar: str = "", mascara_pernas:
         return out
     out.update({"medido": True, "altura_cm": round(altura_de(top), 1), "gap_pes_cm": round(altura_de(bot) + CALIB_PES_CM, 1),
                 "largura_cm": round(float((dir_ - esq) / px_por_cm), 1),
-                "centro_desvio_cm": round(float(((esq + dir_) / 2 - rx.mean()) / px_por_cm), 1)})
+                "centro_desvio_cm": round(float(((esq + dir_) / 2 - rx.mean()) / px_por_cm), 1),
+                "_rx_mean_px": float(rx.mean())})
     out["deitado"] = bool(out["altura_cm"] < 110 and out["largura_cm"] > out["altura_cm"])
     if mascara_pernas:  # região abaixo de 80 cm, para comparar pernas entre instantes (pés plantados?)
         linha = int(np.interp(80.0, zs, ry))
@@ -402,7 +513,14 @@ def _xf(x, y, z, pitch=0.0, yaw=0.0, roll=0.0, s=(1, 1, 1)) -> dict:
 # a silhueta e a visão. Paredes e teto: cinza escuro SEM iluminação (emitem a própria cor: tom fixo em qualquer
 # vista, sem ficar preto). Piso: cinza médio fosco e iluminado (mostra a sombra de contato). Luz branca própria e
 # exposição manual num volume de pós-processo (sem bloom, DOF, vinheta, motion blur, lens flare).
-ESTUDIO_V2 = None  # None = decide pelo arquivo work/estudio_v2.on (liga sem reiniciar o Hermes); True/False força
+ESTUDIO_V2 = None  # None = v2 (padrão no CÓDIGO); só o arquivo work/estudio_v1.forcar volta à v1 (emergência)
+
+
+def _estudio_v2_ligado() -> bool:
+    """06/10: a v2 dependia de um arquivo em work/ e um ambiente copiado sem ele mediu no estúdio errado."""
+    if ESTUDIO_V2 is not None:
+        return ESTUDIO_V2
+    return not os.path.exists(os.path.join(RAIZ_WORK, "estudio_v1.forcar"))
 PASTA_ESTUDIO = "/Game/_AnimLab/Estudio"
 MAT = "editor_toolset.toolsets.material.MaterialTools"
 COR_FUNDO = 0.035   # emissivo linear das paredes/teto (cinza escuro na imagem)
@@ -471,7 +589,7 @@ AJUSTE_MAX_CM = 10.0    # ajuste de Z maior que isto = pose sem chão / sentada 
 def _pintar_copia(copia: dict):
     """Na v2, a cópia de medição recebe material branco sem iluminação (06/10: com o Unreal em segundo plano o Lumen
     não convergia, o boneco escurecia, a silhueta perdia as pernas e a macro afundava o ator ~25 cm)."""
-    v2 = ESTUDIO_V2 if ESTUDIO_V2 is not None else os.path.exists(os.path.join(RAIZ_WORK, "estudio_v2.on"))
+    v2 = ESTUDIO_V2 if ESTUDIO_V2 is not None else _estudio_v2_ligado()
     if not v2:
         return
     m = _material_estudio("M_Estudio_Silhueta", COR_SILHUETA, sem_luz=True)
@@ -483,12 +601,12 @@ def _pintar_copia(copia: dict):
 
 def _estudio_piso():
     """Monta a sala técnica do estúdio (uma vez por processo) e devolve o piso (topo em z=0)."""
-    v2_pedido = ESTUDIO_V2 if ESTUDIO_V2 is not None else os.path.exists(os.path.join(RAIZ_WORK, "estudio_v2.on"))
+    v2_pedido = ESTUDIO_V2 if ESTUDIO_V2 is not None else _estudio_v2_ligado()
     if _estudio["piso"] and _estudio.get("versao") == ("v2" if v2_pedido else "v1"):
         return _estudio["piso"]
     if _estudio["piso"] or _estudio.get("atores"):  # versão mudou ou montagem anterior incompleta: desmonta
         limpar_estudio()
-    v2 = ESTUDIO_V2 if ESTUDIO_V2 is not None else os.path.exists(os.path.join(RAIZ_WORK, "estudio_v2.on"))
+    v2 = ESTUDIO_V2 if ESTUDIO_V2 is not None else _estudio_v2_ligado()
     if not v2:  # v1: só o piso (céu ao fundo)
         p = cliente().call(SCENE, "add_to_scene_from_asset", asset_path="/Engine/BasicShapes/Cube.Cube",
                            name=f"TESTE_ESTUDIO_{RUN}_PISO", xform=_xf(ESTUDIO[0], ESTUDIO[1], -50, s=(12, 12, 1)))
@@ -966,3 +1084,17 @@ def salvar_lab(rel):
     rel["medidas"].update({"salvos": alvos, "resultado": ok})
     if ok is False:
         rel["bloqueio"] = "save_assets recusou"
+
+
+@macro
+def liberar_trava_orfa(rel, corrompida: bool = False):
+    """Libera a trava do Unreal SOMENTE se o processo dono morreu (confirmado pelo sistema) — ou, com
+    corrompida=True, se o arquivo de trava está corrompido. Dono vivo: recusa. Toda decisão vai para work/trava.log."""
+    from . import trava
+    d = trava.liberar_orfa(TRAVA, os.path.join(RAIZ_WORK, "trava.log"), corrompida=corrompida)
+    rel["medidas"]["decisao"] = d
+    if not d["liberada"]:
+        rel["bloqueio"] = f"não liberei: {d.get('recusa') or d['motivo']}"
+
+
+liberar_trava_orfa.__wrapped__._usa_unreal = False  # não toma a trava que está examinando

@@ -22,7 +22,8 @@
 6. **Nunca destruir em silêncio.** Apagar, sobrescrever ou salvar fora de `/Game/_AnimLab/` exige pedido explícito do Talis no contexto. Nunca salvar `SK_YBot`, `SK_YBot_Skeleton` nem a sala de audiência. `save_assets` só com caminhos explícitos.
 7. **Preservar o que o Talis arrumou.** Uma macro de animação não move o ator. Só ajusta o componente, e só pelo que mediu (ex.: a compensação da raiz). Ela registra o "antes" no relatório.
 8. **Um de cada vez.** Um workflow que muda vários atores para no primeiro FAIL. Nada de lote às cegas.
-9. **Um agente por vez no Unreal.** As macros usam a trava `unreal-macros/work/unreal.trava` (uma macro por vez entre processos). Ela não impede outro agente que use o MCP bruto: o MCP bruto fica desligado para o Hermes.
+9. **Um agente por vez no Unreal.** As macros usam a trava `unreal-macros/work/unreal.trava` (uma macro por vez entre processos). **v0.0.2:** a trava guarda pid + horário de criação do processo; só é assumida ou liberada (`liberar_trava_orfa`) quando o dono está **comprovadamente morto** — idade nunca é prova; trava corrompida exige confirmação explícita. Ela não impede outro agente que use o MCP bruto: o MCP bruto fica desligado para o Hermes.
 10. **As regras de ferro herdadas (R-xx e FALHA-xx) vivem dentro das macros,** não na memória do modelo. Exemplos: girar o componente, não o ator; `bUseRefPoseOnInitAnim=false`; importar animação de `animation_motion_ybot/`; não reexportar pelo Blender; nunca trocar de level com o LAB sujo.
-11. **Uma macro nova só entra para o Hermes** depois de passar 3 de 3 nos casos positivos e de reprovar o controle negativo.
-12. **Compatibilidade fica abaixo da macro.** Se o Unreal mudar nomes de propriedade ou de ferramenta, corrige-se a macro; o Hermes não precisa saber.
+11. **Experimentos passam pelo controlador** (`iniciar/rodar/fechar_experimento`, v0.0.2): solução incerta = 2–3 hipóteses diferentes; causa comprovada = conserto; aposta = meta + prazo + critério; dependência só se já integrada; 2 corridas e 60 min; cópia de trabalho própria; guarda intacta.
+12. **Uma macro nova só entra para o Hermes** depois de passar 3 de 3 nos casos positivos e de reprovar o controle negativo.
+13. **Compatibilidade fica abaixo da macro.** Se o Unreal mudar nomes de propriedade ou de ferramenta, corrige-se a macro; o Hermes não precisa saber.

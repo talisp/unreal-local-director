@@ -1,0 +1,44 @@
+{
+ "secao": "s6a_normal",
+ "quando": "2026-10-06T17:42:08",
+ "versao_codigo": "d3fda03f0ebe",
+ "resultados": [
+  {
+   "teste": "laço do supervisor em sessão real NORMAL (pasta limpa): 3 execuções, sem alarme (A)",
+   "esperado": "3 / sem alarme",
+   "observado": [
+    3,
+    [
+     [],
+     [],
+     []
+    ],
+    [
+     true,
+     true,
+     true
+    ]
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "fila real: caso respondido NESTA versão é excluído (Waving da seção 6)",
+   "esperado": "E-wave excluído",
+   "observado": [
+    "E-wave"
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "fila real: resultado de versão ANTIGA do código volta como informação nova (Walking)",
+   "esperado": "código mudou",
+   "observado": [
+    "código mudou desde o último resultado"
+   ],
+   "ok": true,
+   "detalhe": null
+  }
+ ]
+}

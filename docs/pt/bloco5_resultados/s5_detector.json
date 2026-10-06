@@ -1,0 +1,89 @@
+{
+ "secao": "s5_detector",
+ "quando": "2026-10-06T15:22:17",
+ "versao_codigo": "23245ed8e586",
+ "resultados": [
+  {
+   "teste": "2 tentativas reais equivalentes -> repetição, degrau cutucar",
+   "esperado": [
+    "repeticao",
+    "cutucar"
+   ],
+   "observado": [
+    "repeticao",
+    "cutucar"
+   ],
+   "ok": true,
+   "detalhe": {
+    "evidencia": [
+     "20261006-151933-28744-3",
+     "20261006-152104-28744-4"
+    ],
+    "erro": "gate:pes_plantados,pose_em_todo_clipe"
+   }
+  },
+  {
+   "teste": "resolver recebe o estado calculado e indica lições/contorno",
+   "esperado": "tipo + lições",
+   "observado": [
+    "verificacao",
+    [
+     "L-ver-01",
+     "L-ver-02",
+     "L-ver-03"
+    ]
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "resultado real melhor -> progresso, escada zerada",
+   "esperado": [
+    "progresso",
+    null
+   ],
+   "observado": [
+    1,
+    null
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "voto da lição L-ver-01 atualizado pelo evento",
+   "esperado": "+1",
+   "observado": {
+    "positivos": 1,
+    "negativos": 0
+   },
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "espera real (trava de outro operador vivo) não é emperramento",
+   "esperado": "0 disparos, 3 esperas",
+   "observado": [
+    0,
+    3
+   ],
+   "ok": true,
+   "detalhe": [
+    {
+     "tipo": "trava",
+     "motivo": "processo dono 28940 está vivo",
+     "dono_pid": 28940
+    },
+    {
+     "tipo": "trava",
+     "motivo": "processo dono 28940 está vivo",
+     "dono_pid": 28940
+    },
+    {
+     "tipo": "trava",
+     "motivo": "processo dono 28940 está vivo",
+     "dono_pid": 28940
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,158 @@
+{
+ "secao": "s6_bloco4",
+ "quando": "2026-10-06T17:38:15",
+ "versao_codigo": "d3fda03f0ebe",
+ "resultados": [
+  {
+   "teste": "mapa: P01",
+   "esperado": "atendivel",
+   "observado": "atendivel",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "mapa: P14",
+   "esperado": "parcial",
+   "observado": "parcial",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "mapa: P09",
+   "esperado": "nao_atendivel",
+   "observado": "nao_atendivel",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "P01 'acena' é atendível de verdade (Waving em boneco de teste)",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "P14 'foto' (parcial): resultado real na zona de teste (informativo)",
+   "observado": {
+    "ok": true,
+    "bloqueio": null
+   },
+   "ok": true
+  },
+  {
+   "teste": "fila real: exploração exclui caso já respondido (Walking real)",
+   "esperado": "E-walk excluído",
+   "observado": [],
+   "ok": false,
+   "detalhe": null
+  },
+  {
+   "teste": "fila real: contrato em dia nesta versão",
+   "esperado": "C-med em dia",
+   "observado": [
+    "C-med"
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "fila real: código mudou -> contrato volta como regressão",
+   "esperado": "regressao",
+   "observado": [
+    "regressao"
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "laço do supervisor: 3 execuções reais registradas, sem alarme com progresso recente (A)",
+   "esperado": "3 / sem alarme",
+   "observado": [
+    3,
+    [
+     [
+      "atividade_sem_progresso",
+      "emperramento_de_sessao"
+     ],
+     [
+      "atividade_sem_progresso",
+      "emperramento_de_sessao"
+     ],
+     [
+      "atividade_sem_progresso",
+      "emperramento_de_sessao"
+     ]
+    ]
+   ],
+   "ok": false,
+   "detalhe": null
+  },
+  {
+   "teste": "relógio +46 min sem progresso -> alarme (B)",
+   "esperado": "atividade_sem_progresso ou sem_atividade",
+   "observado": [
+    "atividade_sem_progresso",
+    "emperramento_de_sessao"
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "espera legítima (corrida real em andamento) -> sem alarme (C)",
+   "esperado": "sem alarme de progresso",
+   "observado": [
+    [
+     "emperramento_de_sessao"
+    ],
+    [
+     "corrida"
+    ]
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "produção ALTERADA (cópia controlada) -> alarme + PAUSA + macro recusa (D)",
+   "esperado": "producao_alterada, PAUSA, recusa",
+   "observado": [
+    [
+     "atividade_sem_progresso",
+     "producao_alterada",
+     "emperramento_de_sessao"
+    ],
+    true,
+    "PausaAtiva: PAUSADO pelo supervisor: producao_alterada — só o operador libera"
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "PAUSA removida pelo operador (Claude) depois do teste D",
+   "ok": true
+  },
+  {
+   "teste": "texto 'progredi' ignorado (E)",
+   "esperado": "último progresso igual",
+   "observado": true,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "mesma estratégia com nomes diferentes -> emperramento de sessão (F)",
+   "esperado": "b5-nome-a + b5-nome-b (desta rodada)",
+   "observado": [
+    "b5-nome-a-1736",
+    "b5-nome-b-1736"
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "passagem de sessão sobre o estado real (<= 4 KB)",
+   "esperado": "<= 4000",
+   "observado": 1820,
+   "ok": true,
+   "detalhe": null
+  }
+ ]
+}

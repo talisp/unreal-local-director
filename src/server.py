@@ -1,6 +1,6 @@
 """Servidor MCP `unreal-local-director`: a superfície pública do Hermes no Unreal (política: macros + workflows + escotilha).
 
-Roda por stdio: <venv>/python.exe servidor_macros.py
+Roda por stdio: <venv>/python.exe server.py
 Cada ferramenta devolve o relatório padrão em JSON: {macro, ok, medidas, evidencias, avisos, bloqueio, chamadas, segundos}.
 """
 import json
@@ -122,6 +122,117 @@ def registrar_falha(titulo: str, texto: str, estado: str = "ABERTO") -> str:
     """Registra uma falha nova no FALHAS_UNREAL.md pela VM (numera e faz commit). NUNCA edite .md pelo Y: (zera o arquivo).
     texto: linhas '- Sintoma: ...', '- Causa/hipótese: ...', '- Contorno: ...'."""
     return _r(M.registrar_falha(titulo, texto, estado=estado))
+
+
+def _exp(fn, *a, **k) -> str:
+    from unreal_macros import experimentos as X
+    try:
+        return json.dumps({"ok": True, **{"resultado": fn(*a, **k)}}, ensure_ascii=False, default=str)
+    except X.Recusa as e:
+        return json.dumps({"ok": False, "recusa": str(e)}, ensure_ascii=False)
+
+
+@mcp.tool()
+def iniciar_experimento(nome: str, tipo: str, objetivo: str, hipoteses_json: str = "", escolhida: int = 0,
+                        dependencias: str = "", causa_evidencia: str = "", correcao: str = "", pedido: str = "") -> str:
+    """Abre um experimento no sandbox com cópia de trabalho própria (criada do master). tipo=experimento (solução
+    incerta): hipoteses_json = lista de 2-3 objetos {descricao, mudanca, previsao[, aposta:{meta:{metrica,comparador,
+    valor}, prazo_min, criterio_encerramento}]}, materialmente diferentes; escolhida = índice. tipo=conserto (causa
+    comprovada): sem hipóteses, com causa_evidencia (relatorio_id ou arquivo do sandbox) e correcao. dependencias:
+    branches separadas por vírgula, que precisam já estar INTEGRADAS no master. pedido: id do banco de pedidos que o
+    experimento ajuda (ex.: P08) ou 'infraestrutura/transversal'. Limites: 2 corridas, 60 min."""
+    from unreal_macros import experimentos as X
+    hips = json.loads(hipoteses_json) if hipoteses_json else None
+    deps = [d.strip() for d in dependencias.split(",") if d.strip()]
+    return _exp(X.iniciar, nome, tipo, objetivo, hipoteses=hips, escolhida=escolhida, dependencias=deps,
+                causa_evidencia=causa_evidencia, correcao=correcao, pedido=pedido)
+
+
+@mcp.tool()
+def rodar_experimento(nome: str, script: str) -> str:
+    """Roda UMA corrida do experimento: o script (caminho relativo à cópia do experimento, ex. src/testes_contrato.py)
+    executa com o código do sandbox (com guarda). Recusa a 3a corrida, prazo esgotado, guarda alterada ou script que
+    aponte para a produção. O resultado (saída, código, testes ok) é gravado pela ferramenta."""
+    from unreal_macros import experimentos as X
+    return _exp(X.rodar, nome, script)
+
+
+@mcp.tool()
+def fechar_experimento(nome: str, interpretacao: str = "") -> str:
+    """Fecha o experimento: o resultado vem das corridas gravadas; sua interpretação fica guardada à parte, marcada
+    como declarada. As hipóteses não escolhidas continuam no arquivo de alternativas."""
+    from unreal_macros import experimentos as X
+    return _exp(X.fechar, nome, interpretacao)
+
+
+@mcp.tool()
+def consultar_emperramento(linha: str) -> str:
+    """Diz se a linha de trabalho está EMPERRADA, lendo só os registros das ferramentas (relatórios e eventos). Devolve
+    degrau (cutucar/replanejar/outro_caminho/escalar/abortar), tipo_falha, contorno, lições relevantes e fontes de
+    solução pronta. linha = nome do experimento, ou contexto.linha da macro (padrão: o nome da macro)."""
+    from unreal_macros import emperramento as E, experimentos as X, resolver as RS
+    itens = E.carregar_historico(os.path.join(M.RAIZ_WORK, "relatorios"), X.PASTA)
+    estado = E.avaliar(itens, linha)
+    E.registrar_disparos(estado, os.path.join(M.RAIZ_WORK, "emperramento", "disparos.jsonl"))
+    RS.atualizar_votos(itens)
+    return json.dumps(RS.orientar(estado), ensure_ascii=False, default=str)
+
+
+@mcp.tool()
+def registrar_uso_licao(licao_id: str, linha: str) -> str:
+    """Registra que você aplicou a lição na linha. O voto (ajudou/não) é decidido depois pelo próximo resultado
+    medido nessa linha, nunca por texto."""
+    from unreal_macros import resolver as RS
+    try:
+        return json.dumps({"ok": True, "registro": RS.registrar_uso_licao(licao_id, linha)}, ensure_ascii=False)
+    except ValueError as e:
+        return json.dumps({"ok": False, "recusa": str(e)}, ensure_ascii=False)
+
+
+@mcp.tool()
+def passagem_de_sessao() -> str:
+    """Chame no INÍCIO de toda sessão: devolve só o necessário para continuar (objetivo, experimentos abertos, último
+    progresso útil medido, degraus, pendências, lições relevantes, bloqueios e esperas ativos). Não releia histórico."""
+    from unreal_macros import sessao
+    return json.dumps(sessao.passagem(), ensure_ascii=False, default=str)
+
+
+@mcp.tool()
+def registrar_escalada(linha: str, motivo: str) -> str:
+    """Passa a linha para um humano (degrau 'escalar'), com o diagnóstico em uma frase. Suspende o relógio do
+    supervisor até a próxima tentativa; não conta como progresso."""
+    from unreal_macros import experimentos as X
+    return _exp(X.registrar_escalada, linha, motivo)
+
+
+@mcp.tool()
+def liberar_trava_orfa(corrompida: bool = False) -> str:
+    """Libera a trava do Unreal só se o processo dono MORREU (confirmado pelo sistema, não pela idade). Dono vivo:
+    recusa (espere). corrompida=True só se o relatório disser que a trava está corrompida e ninguém estiver operando."""
+    return _r(M.liberar_trava_orfa(corrompida=corrompida))
+
+
+@mcp.tool()
+def registrar_tentativa(macro: str, relatorio_id: str = "", relatorio_json: str = "", ator: str = "", clipe: str = "",
+                        rodada: int = 0, tema: str = "", caso: str = "", previsao: str = "", restaurado: str = "",
+                        restauracao: str = "", licao: str = "") -> str:
+    """Grava a linha do diário da bancada a partir do relatório REAL da macro. Use relatorio_id (o campo "id" que a
+    macro devolveu): os números vêm do disco, nunca redigitados. relatorio_json (colado) só se não houver id; a linha
+    fica marcada fonte="colado". Você informa apenas rodada/tema/caso/previsão/restauração/lição. restaurado: sim|nao."""
+    from unreal_macros import diario
+    try:
+        if relatorio_id:
+            rel, fonte = diario.carregar_relatorio(relatorio_id), "relatorio_id"
+        elif relatorio_json:
+            rel, fonte = json.loads(relatorio_json), "colado"
+        else:
+            raise ValueError("informe relatorio_id (preferido) ou relatorio_json")
+        res = diario.registrar(rel, macro=macro, ator=ator, clipe=clipe, rodada=rodada or None, tema=tema, caso=caso,
+                               previsao=previsao, restaurado={"sim": True, "nao": False}.get(restaurado),
+                               restauracao=restauracao, licao=licao, fonte=fonte)
+    except Exception as e:  # noqa: BLE001
+        res = {"ok": False, "bloqueio": f"{type(e).__name__}: {e}"}
+    return json.dumps(res, ensure_ascii=False)
 
 
 if __name__ == "__main__":

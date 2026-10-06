@@ -1,0 +1,21 @@
+{
+  "_sobre": "lacuna -> onde procurar solução PRONTA antes de construir. status: instalado | nao_instalado. Fonte nao_instalada é reservada: não pode ser usada até ser instalada e marcada como instalada.",
+  "movimento": [
+    {"nome": "biblioteca de clipes Mixamo (buscar_clipe / previa_clipe)", "status": "instalado"},
+    {"nome": "Kimodo (gerar movimento por texto, na VM)", "status": "nao_instalado"}
+  ],
+  "objeto_3d": [
+    {"nome": "3d-asset-server (17 sites: Poly Haven, ambientCG, Kenney...)", "status": "nao_instalado",
+     "url": "https://github.com/arielshad/3d-asset-server"},
+    {"nome": "Fab (importar asset, receita R-24)", "status": "nao_instalado"}
+  ],
+  "unreal": [
+    {"nome": "documentação da Epic (web_search / web_extract)", "status": "instalado"},
+    {"nome": "projetos MCP para Unreal no GitHub (gh search)", "status": "instalado"}
+  ],
+  "codigo": [
+    {"nome": "livro de lições do diretor (consultar_emperramento)", "status": "instalado"},
+    {"nome": "GitHub (gh search repos / code)", "status": "instalado"},
+    {"nome": "web (web_search)", "status": "instalado"}
+  ]
+}

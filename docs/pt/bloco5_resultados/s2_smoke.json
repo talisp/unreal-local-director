@@ -1,0 +1,81 @@
+{
+ "secao": "s2_smoke",
+ "quando": "2026-10-06T15:00:41",
+ "versao_codigo": "23245ed8e586",
+ "resultados": [
+  {
+   "teste": "inspecionar_cena acha os bonecos de teste",
+   "esperado": 4,
+   "observado": 4,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "positivo conhecido (Head_Nod_Yes)",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "controle negativo (termina ajoelhado) reprova pelo gate de pose",
+   "esperado": "silhueta_de_pe ou pose_em_todo_clipe",
+   "observado": [
+    "silhueta_de_pe"
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "reprovação restaurou e conferiu",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "medição de pé (Head_Nod aplicado)",
+   "esperado": "160-210 cm, |gap|<=4",
+   "observado": [
+    178.2,
+    -0.1
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "relatório aplicar persistido com versão",
+   "esperado": "20261006-145954-57292-3",
+   "observado": "20261006-145954-57292-3",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "relatório aplicar(neg) persistido com versão",
+   "esperado": "20261006-150026-57292-5",
+   "observado": "20261006-150026-57292-5",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "relatório medir persistido com versão",
+   "esperado": "20261006-150041-57292-6",
+   "observado": "20261006-150041-57292-6",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "registrar_tentativa pelo id: números iguais ao relatório",
+   "esperado": [
+    82.4,
+    236
+   ],
+   "observado": [
+    82.4,
+    236
+   ],
+   "ok": true,
+   "detalhe": null
+  }
+ ]
+}

@@ -22,12 +22,19 @@
 | `validar_cartao(cartao)` / `executar_cartao(cartao)` | plano de cena em JSON (sem quadros, sem API) | executar: sim |
 | `chamada_avancada(...)` | escotilha SÓ DE LEITURA (recusa escrita e script; registra tentativa, resultado e erro) | não |
 | `registrar_falha(titulo, texto)` | grava a FALHA no `FALHAS_UNREAL.md` pela VM (commit) e refaz o cache do Y: se preciso | não (escreve na VM) |
+| `registrar_tentativa(macro, relatorio_id)` | (v0.0.2) grava a linha do diário a partir do relatório REAL guardado pela macro (`work/relatorios/<id>.json`); JSON colado só como alternativa, marcado `fonte=colado` | não (escreve só no diário) |
+| `iniciar/rodar/fechar_experimento` | (v0.0.2) experimentos controlados no sandbox (ver `EXPERIMENTOS.md`) | só no sandbox |
+| `liberar_trava_orfa(corrompida)` | (v0.0.2) libera a trava só se o dono morreu | não |
+| `consultar_emperramento(linha)` | (v0.0.2) a linha emperrou? degrau, tipo de falha, contorno, lições e fontes (skill `resolver-problemas`) | não |
+| `registrar_uso_licao(licao_id, linha)` | (v0.0.2) marca o uso da lição; o voto sai do próximo resultado medido | não |
+| `passagem_de_sessao()` | (v0.0.2) chame no início de toda sessão: estado mínimo para continuar (objetivo, experimentos abertos, último progresso, degraus, pendências, lições, bloqueios) | não |
+| `registrar_escalada(linha, motivo)` | (v0.0.2) passa a linha a um humano; suspende o relógio do supervisor (não renova) | não |
 
 ## Gates (todos numéricos; `gates.py`)
 - `silhueta_de_pe`: altura da silhueta entre 150 e 200 cm e não deitado.
 - `pes_no_chao`: |gap| ≤ 4 cm em relação ao **piso real** sob o original.
 - `ator_parado`: o ator não sai do lugar; só se aceita o ajuste que a macro declarou.
-- `deriva_xy`: o corpo não "passeia" (4 instantes do clipe, vista lateral).
+- `deriva_xy`: o corpo não "passeia" (4 instantes, vistas lateral e frontal). **v0.0.2:** medida pelo centro da REGIÃO DAS PERNAS (abaixo de 80 cm), não da silhueta inteira — gesticular de pé não reprova mais (exp2 do Hermes, 06/10).
 - `pes_plantados`: IoU das pernas entre instantes ≥ 0,55. Calibração: `Walking` 0,00; conversas 0,69–0,82.
 - `distancia_vizinhos`: ≥ 45 cm entre as bases.
 - `enquadramento` / `sem_oclusao_cenario` (captura).
@@ -62,3 +69,10 @@
 - **Sentar** ainda não é macro (receita R-13 manual); `aplicar_clipe` é só para personagem de pé.
 - **Sequencer** (encadear clipes no tempo) ainda não é macro: está bloqueado pela FALHA-19 e pela falta de amostragem de osso.
 - A duração de clipes do site (`..._mixamo_com`) é assumida como 2 s nas amostras de movimento.
+
+## v0.0.2 (em construção)
+- Todo relatório de macro ganha `id` e é guardado em `work/relatorios/<id>.json` (base do `registrar_tentativa`).
+- Captura estável por convergência (exp5) existe mas fica **desligada** (`ULD_CAPTURA_ESTAVEL=1` liga): +12,6% chamadas sem ganho comprovado.
+
+## Retenção de relatórios (v0.0.2)
+`work/relatorios/` é arquivado (nunca apagado) em `work/relatorios_arquivo/AAAA-MM/` quando o relatório tem mais de 7 dias **e** não está: na janela do detector (sem progresso depois dele na linha ou na sessão), em experimento aberto ou na janela de uma lição sem voto. O índice `indice.jsonl` mantém macro, chamada, resultado e versão do código (regressão e auditoria); `carregar_relatorio` lê do arquivo.

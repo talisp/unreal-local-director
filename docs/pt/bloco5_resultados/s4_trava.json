@@ -1,0 +1,49 @@
+{
+ "secao": "s4_trava",
+ "quando": "2026-10-06T15:01:00",
+ "versao_codigo": "23245ed8e586",
+ "resultados": [
+  {
+   "teste": "trava com dono vivo: liberação recusada",
+   "esperado": false,
+   "observado": false,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "dono morto (processo real encerrado): liberar_trava_orfa libera",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "PID reaproveitado (processo real, horário de criação forjado)",
+   "esperado": "morta",
+   "observado": "morta",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "formato antigo + idade 10 h com pid vivo: conservador (viva)",
+   "esperado": "viva",
+   "observado": "viva",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "concorrência: 6 processos ao mesmo tempo -> exatamente 1 operador",
+   "esperado": 1,
+   "observado": 1,
+   "ok": true,
+   "detalhe": [
+    "GANHEI",
+    "PERDI",
+    "PERDI",
+    "PERDI",
+    "PERDI",
+    "PERDI"
+   ]
+  }
+ ]
+}

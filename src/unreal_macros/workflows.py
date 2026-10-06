@@ -5,16 +5,34 @@ from . import catalogo, gates
 from . import macros as M
 
 
+def _centro_pernas_cm(s: dict, px_por_cm: float) -> float:
+    """Centro x (cm relativo à base) da REGIÃO DAS PERNAS (a mesma máscara abaixo de 80 cm do pes_plantados).
+    Sway de tronco/braço não move as pernas plantadas; caminhar move. (exp2, Hermes 06/10: Talking_2, o controle
+    canônico de conversa parada, reprovava em deriva_xy 21,0 porque o centro da silhueta inteira acompanha os braços.)"""
+    import numpy as np
+    m = s.get("_pernas")
+    if m is None or not s.get("medido"):
+        raise ValueError("amostra sem máscara de pernas")
+    xs = np.nonzero(m.any(axis=0))[0]
+    if not len(xs):
+        raise ValueError("máscara de pernas vazia")
+    return float((xs.mean() - s["_rx_mean_px"]) / px_por_cm)
+
+
 def _gate_deriva(a: dict, tol: float) -> dict:
-    """Uma cópia no estúdio tocando o loop, fotografada de lado em 4 instantes: um clipe que anda 'passeia' na
-    horizontal (ou sai do quadro, o que também reprova)."""
+    """Uma cópia no estúdio tocando o loop, fotografada de lado e de frente em 4 instantes: um clipe que anda
+    'passeia' na horizontal (ou sai do quadro, o que também reprova). A deriva mede o centro da REGIÃO DAS PERNAS
+    (abaixo de 80 cm), não da silhueta inteira: gesticular de pé não anda (exp2)."""
     lat = M._amostrar_estudio(a, vista="lateral", n=4, intervalo=0.6)
     fr = M._amostrar_estudio(a, vista="frontal", n=4, intervalo=0.6)
     if any(not s.get("medido") for s in lat + fr):
         return [gates.g("deriva_xy", False, "saiu da janela de medida", f"<= {tol} cm")]
-    # lateral vê o deslocamento para frente/trás; frontal vê o deslocamento para os lados (A07)
-    return [gates.deriva_xy([(s["centro_desvio_cm"], f["centro_desvio_cm"]) for s, f in zip(lat, fr)], tol),
-            gates.pes_plantados(lat)]
+    try:
+        # lateral vê o deslocamento para frente/trás; frontal vê o deslocamento para os lados (A07)
+        pares = [(_centro_pernas_cm(s, s["px_por_cm"]), _centro_pernas_cm(f, f["px_por_cm"])) for s, f in zip(lat, fr)]
+    except ValueError as e:
+        return [gates.g("deriva_xy", False, f"pernas não mensuráveis: {e}", f"<= {tol} cm")]
+    return [gates.deriva_xy(pares, tol), gates.pes_plantados(lat)]
 
 
 @M.macro

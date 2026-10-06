@@ -1,0 +1,22 @@
+[
+  {"id": "P01", "texto": "O homem de azul acena.", "nivel": 1, "intencao": "gesto_de_pe", "criterio": "o personagem pedido faz um aceno em loop, de pé, sem sair do lugar", "capacidades": ["gesto_de_pe"]},
+  {"id": "P02", "texto": "Esse personagem fica conversando, parado.", "nivel": 1, "intencao": "gesto_de_pe", "criterio": "gesticula falando, pés plantados, sem deriva", "capacidades": ["gesto_de_pe"]},
+  {"id": "P03", "texto": "Ele aponta para frente.", "nivel": 1, "intencao": "gesto_de_pe", "criterio": "um gesto de apontar visível na foto", "capacidades": ["gesto_de_pe"]},
+  {"id": "P04", "texto": "Ela encolhe os ombros.", "nivel": 1, "intencao": "gesto_de_pe", "criterio": "o gesto de dar de ombros acontece", "capacidades": ["gesto_de_pe"]},
+  {"id": "P05", "texto": "Faz ele bater palmas.", "nivel": 1, "intencao": "gesto_de_pe", "criterio": "aplaude de pé no lugar", "capacidades": ["gesto_de_pe"]},
+  {"id": "P06", "texto": "A plateia conversa baixinho entre si.", "nivel": 1, "intencao": "plateia_loop", "criterio": "cada pessoa da plateia em loop discreto, ninguém sai do lugar nem encosta no vizinho", "capacidades": ["plateia_loop"]},
+  {"id": "P07", "texto": "Ele balança a cabeça dizendo que sim.", "nivel": 1, "intencao": "gesto_de_pe", "criterio": "aceno de cabeça visível", "capacidades": ["gesto_de_pe"]},
+  {"id": "P08", "texto": "O personagem vai até a porta.", "nivel": 1, "intencao": "ir_ate_ponto", "criterio": "termina a menos de 1 m da porta", "capacidades": ["ir_ate_ponto"]},
+  {"id": "P09", "texto": "Ele senta na cadeira.", "nivel": 1, "intencao": "sentar", "criterio": "quadril sobre a cadeira certa (não a mesa)", "capacidades": ["sentar"]},
+  {"id": "P10", "texto": "Ela sobe a escada.", "nivel": 1, "intencao": "escada", "criterio": "termina no topo da escada", "capacidades": ["escada"]},
+  {"id": "P11", "texto": "Ele abre a porta.", "nivel": 1, "intencao": "porta", "criterio": "a porta abre mais de 45 graus", "capacidades": ["porta"]},
+  {"id": "P12", "texto": "Ele olha para o rei.", "nivel": 1, "intencao": "olhar_para", "criterio": "a cabeça aponta para o rei", "capacidades": ["olhar_para"]},
+  {"id": "P13", "texto": "Ela se vira para a janela.", "nivel": 1, "intencao": "virar_para", "criterio": "o corpo fica de frente para a janela", "capacidades": ["virar_para"]},
+  {"id": "P14", "texto": "Tire uma foto dele de frente.", "nivel": 1, "intencao": "foto_evidencia", "criterio": "imagem com o corpo inteiro e sem nada na frente", "capacidades": ["foto_evidencia"]},
+  {"id": "P15", "texto": "Ele está de pé direito? Confere se não está flutuando.", "nivel": 1, "intencao": "medir_pose", "criterio": "resposta com altura e distância dos pés ao piso", "capacidades": ["medir_pose"]},
+  {"id": "P16", "texto": "Ele vai até a porta e acena.", "nivel": 2, "intencao": "ir_ate_ponto", "criterio": "chega a menos de 1 m da porta e acena", "capacidades": ["ir_ate_ponto", "gesto_de_pe"]},
+  {"id": "P17", "texto": "Ela sobe a escada e senta ao lado do rei.", "nivel": 2, "intencao": "escada", "criterio": "topo da escada, sentada na cadeira ao lado do rei", "capacidades": ["escada", "ir_ate_ponto", "sentar"]},
+  {"id": "P18", "texto": "Ele pega o papel da mesa.", "nivel": 2, "intencao": "pegar_objeto", "criterio": "o papel sai da mesa na mão dele", "capacidades": ["ir_ate_ponto", "pegar_objeto"]},
+  {"id": "P19", "texto": "Os dois andam juntos pelo jardim.", "nivel": 2, "intencao": "andar_junto", "criterio": "os dois se deslocam lado a lado sem colidir", "capacidades": ["andar_junto", "ir_ate_ponto"]},
+  {"id": "P20", "texto": "Monte uma pracinha com bancos e árvores.", "nivel": 2, "intencao": "construir_lugar", "criterio": "um lugar com bancos e árvores aparece no level", "capacidades": ["construir_lugar"]}
+]

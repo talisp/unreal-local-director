@@ -1,0 +1,20 @@
+{
+  "_sobre": "Mapa de capacidades v0 (06/10). disponivel = há ferramenta verificada que faz; parcial = funciona com limites conhecidos; inexistente = não há ferramenta (não inventar só porque existe algo parecido). 'ferramentas' só pode citar ferramentas MCP que existem no servidor.",
+  "gesto_de_pe": {"estado": "disponivel", "ferramentas": ["buscar_clipe", "importar_clipe", "aplicar_clipe"],
+                  "nota": "personagem de pé faz um gesto/fala em loop (acenar, conversar, apontar, palmas)"},
+  "plateia_loop": {"estado": "disponivel", "ferramentas": ["plateia_em_loop"],
+                   "nota": "vários personagens de pé em loops discretos, um por vez"},
+  "medir_pose": {"estado": "disponivel", "ferramentas": ["medir_personagem"], "nota": "de pé? pés no piso? vizinhos?"},
+  "encontrar_clipe": {"estado": "disponivel", "ferramentas": ["buscar_clipe", "previa_clipe"], "nota": "biblioteca local"},
+  "foto_evidencia": {"estado": "parcial", "ferramentas": ["capturar_evidencia"],
+                     "nota": "no mezanino reprova quase sempre por oclusão do cenário (bancada 06/10)"},
+  "ir_ate_ponto": {"estado": "inexistente", "ferramentas": [], "nota": "exp6 do Hermes (sandbox) ainda sem código"},
+  "olhar_para": {"estado": "inexistente", "ferramentas": []},
+  "virar_para": {"estado": "inexistente", "ferramentas": [], "nota": "macros não giram o ator (política, regra 7)"},
+  "porta": {"estado": "inexistente", "ferramentas": []},
+  "escada": {"estado": "inexistente", "ferramentas": []},
+  "sentar": {"estado": "inexistente", "ferramentas": [], "nota": "bloqueado pela política até haver macro"},
+  "pegar_objeto": {"estado": "inexistente", "ferramentas": []},
+  "andar_junto": {"estado": "inexistente", "ferramentas": [], "nota": "dois personagens andando juntos"},
+  "construir_lugar": {"estado": "inexistente", "ferramentas": [], "nota": "fonte reservada: 3d-asset-server (não instalado)"}
+}

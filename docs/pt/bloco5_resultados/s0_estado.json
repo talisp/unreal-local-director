@@ -1,0 +1,40 @@
+{
+ "secao": "s0_estado",
+ "quando": "2026-10-06T14:55:48",
+ "versao_codigo": "23245ed8e586",
+ "resultados": [
+  {
+   "teste": "Unreal sem Play",
+   "esperado": false,
+   "observado": false,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "sem bonecos TESTE_ sobrando",
+   "esperado": [],
+   "observado": [],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "produção intacta (hashes)",
+   "esperado": 0,
+   "observado": 0,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "relatório traz versao_codigo",
+   "esperado": "23245ed8e586",
+   "observado": "23245ed8e586",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "personagens do LAB (contagem)",
+   "observado": 25,
+   "ok": true
+  }
+ ]
+}

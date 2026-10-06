@@ -1,0 +1,42 @@
+{
+ "secao": "s7_falhas",
+ "quando": "2026-10-06T17:43:14",
+ "versao_codigo": "762015bb56b4",
+ "resultados": [
+  {
+   "teste": "corrida interrompida não vira sucesso (sem corrida registrada)",
+   "esperado": "0 corridas",
+   "observado": 0,
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "corrida interrompida há 30 min (> teto de 25): supervisor NÃO pode seguir tratando como espera",
+   "esperado": "alarme corrida_perdida",
+   "observado": [
+    [
+     "corrida_perdida",
+     "corrida_perdida",
+     "emperramento_de_sessao"
+    ],
+    []
+   ],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "estado de experimento corrompido não vira sucesso",
+   "esperado": "erro explícito",
+   "observado": "JSONDecodeError",
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "relatório ausente -> recusa",
+   "esperado": "FileNotFoundError",
+   "observado": "FileNotFoundError",
+   "ok": true,
+   "detalhe": null
+  }
+ ]
+}

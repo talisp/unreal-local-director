@@ -1,6 +1,8 @@
 # unreal-local-director
 
 > **Alpha 0.0.1 — broken, incomplete, far from usable.** Published early so others can see the approach, reproduce the failures and help. Expect rough edges everywhere.
+>
+> **v0.0.2 is in progress on `main` (not audited yet)** — see [v0.0.2 below](#v002-in-progress-not-audited). The 0.0.1 snapshot is tagged [`v0.0.1`](../../tree/v0.0.1).
 
 **Goal:** let a **local LLM** drive **Unreal Engine 5** from simple, plain-language orders ("make the audience chat quietly", "measure if this character is standing", "film him from the side") and get back **verified results**, so we can produce **reference videos** for video models such as **MiniMax H3** and **LTX 2.5** (blocking, character motion, camera) without paying a frontier model for every click.
 
@@ -84,6 +86,22 @@ Broken / missing:
 - pose by bone transforms needs an in-editor Python toolset (not installed yet);
 - the first measurement in a new process can be unstable; many hard-coded assumptions (Y Bot skeleton, our level layout, Portuguese tool names);
 - measurement is slow (~2,000 Unreal calls for the test suite).
+
+## v0.0.2 (in progress, not audited)
+
+Theme: **the agent notices it is stuck, knows what to do, and does not waste hours.** Built in 5 blocks; blocks 1–4 are done, block 5 (real Unreal validation) was stopped midway — status **NOT READY FOR AUDIT** ([docs/pt/BLOCO5_STATUS.md](docs/pt/BLOCO5_STATUS.md)).
+
+| Block | What it adds | Main code |
+|---|---|---|
+| 1 | Every macro writes a report with an id; attempts are read from disk, not pasted text | `src/unreal_macros/macros.py`, `diario.py` |
+| 2 | Lock with a verifiable owner (pid + process start time); experiment controller (2–3 hypotheses, git worktree per experiment, run limits, guard) | `trava.py`, `experimentos.py` |
+| 3 | Stuck detector (repetition, back-and-forth, same error, stagnation → nudge / replan / other path / escalate / abort); lessons with votes; problem-solving skill | `emperramento.py`, `resolver.py`, `docs/pt/skills/resolver-problemas/SKILL.md` |
+| 4 | Requests bank and capability map; value queue (explore vs regress); supervisor (45 min without measured progress, orphan lock, violations → PAUSE); session hand-off; archive rotation | `direcao.py`, `supervisor.py`, `sessao.py`, `rotacao.py`, `src/supervisor_laco.py` |
+| 5 | Validation in real Unreal: found and fixed 5 bugs that offline tests missed | `tools/bloco5_unreal*.py`, `docs/pt/bloco5_resultados/` |
+
+Offline tests (no Unreal needed): `python src/testes_diario.py`, `src/testes_bloco1.py` … `src/testes_bloco5.py`.
+
+**Next (plan, nothing implemented):** v0.0.3 brings in pieces of [VERA](https://github.com/ezesubu/VERA) (isolated actor capture, retargeting, scene mood) behind safety rails inspired by [unreal-harness](https://github.com/oliver-io/unreal-harness) and Aethyr (gates, dry-run, rollback, read-only mode, progressive tool disclosure). Full plan: [docs/pt/PLANO_v003_VERA.md](docs/pt/PLANO_v003_VERA.md). Changelog: [CHANGELOG.md](CHANGELOG.md).
 
 ## Requirements (if you want to try anyway)
 
