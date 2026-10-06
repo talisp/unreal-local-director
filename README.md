@@ -4,6 +4,15 @@
 
 **Goal:** let a **local LLM** drive **Unreal Engine 5** from simple, plain-language orders ("make the audience chat quietly", "measure if this character is standing", "film him from the side") and get back **verified results**, so we can produce **reference videos** for video models such as **MiniMax H3** and **LTX 2.5** (blocking, character motion, camera) without paying a frontier model for every click.
 
+### Where this is going (the important part, not built yet)
+
+The end state is **directing, not operating**. You say what you want, in plain words, and the scene happens:
+
+- *"Make X do this"* → the character does it: pick the motion, apply it, check the pose, show you a frame.
+- *"Build a little square where X can stroll with Y"* → the agent **builds the square** (layout, ground, benches, trees, lighting, from ready-made assets), places both characters, makes them walk together without colliding, frames the camera and records the reference clip.
+
+Today we are only at the first rung: verified standing animations on existing characters. Building places, walking paths and multi-character staging are the **future and most important part** of the roadmap.
+
 Frontier models (Claude Opus, GPT/Codex-class) can already operate Unreal reasonably well. They are also slow to iterate with and expensive per action. This project is the opposite bet: a **small, cheap, local model** plus **a thick layer of deterministic tools** that do the hard part, measure the result and refuse to lie.
 
 ---
@@ -96,4 +105,4 @@ Custom, source-available, **not open source** — see [LICENSE](LICENSE). This p
 
 ### Resumo em português
 
-Alfa inicial (quebrado) de uma camada de **macros verificadas** sobre o MCP oficial do Unreal 5.8, para que um **LLM local** (Hermes + Qwen3.8-Flash-Next no Strata) dirija cenas com ordens simples e receba resultados medidos, com o objetivo de gerar **vídeos de referência para MiniMax H3 e LTX 2.5**. O MCP oficial tem ~593 ferramentas atômicas: poder demais e verificação de menos para um modelo pequeno (15% de chamadas com erro na nossa medição; "pronto" com o boneco deitado, porque a caixa envolvente não acompanha a pose). Usamos como inspiração projetos de agentes para Blender (camadas atômica/macro/workflow, gates medidos) e fizemos a reengenharia para o Unreal, incluindo o "estúdio paralelo" para medir a pose pela silhueta. Andar, escada, sentar e Sequencer ainda não funcionam. Documentação de trabalho em `docs/pt/`.
+Alfa inicial (quebrado) de uma camada de **macros verificadas** sobre o MCP oficial do Unreal 5.8, para que um **LLM local** (Hermes + Qwen3.8-Flash-Next no Strata) dirija cenas com ordens simples e receba resultados medidos, com o objetivo de gerar **vídeos de referência para MiniMax H3 e LTX 2.5**. O MCP oficial tem ~593 ferramentas atômicas: poder demais e verificação de menos para um modelo pequeno (15% de chamadas com erro na nossa medição; "pronto" com o boneco deitado, porque a caixa envolvente não acompanha a pose). Usamos como inspiração projetos de agentes para Blender (camadas atômica/macro/workflow, gates medidos) e fizemos a reengenharia para o Unreal, incluindo o "estúdio paralelo" para medir a pose pela silhueta. Andar, escada, sentar e Sequencer ainda não funcionam. **O objetivo final** é dirigir em linguagem natural: "faça X e o personagem faz"; "crie uma praça para X passear com Y" → o agente constrói a praça (assets prontos, piso, bancos, árvores, luz), posiciona os dois, faz os dois andarem sem colidir, enquadra a câmera e grava o vídeo de referência. Essa é a parte futura e mais importante. Documentação de trabalho em `docs/pt/`.
