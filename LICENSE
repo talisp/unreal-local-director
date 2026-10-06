@@ -1,0 +1,28 @@
+unreal-local-director — Custom Source-Available License (Alpha)
+Copyright (c) 2026 Talis. All rights reserved.
+
+This is NOT an open-source license. It may change in future versions.
+
+1. Permitted: you may view, download, run and modify this code for personal, research and
+   non-commercial evaluation purposes, and share modifications back with the project
+   (issues, pull requests or forks on GitHub that keep this license and notice).
+
+2. Not permitted without prior written permission from the copyright holder:
+   - commercial use, including use in paid products, services or client work;
+   - redistribution outside GitHub forks of this repository, sublicensing or selling;
+   - presenting this work, or substantial parts of it, as your own.
+
+3. Third-party material: this project is inspired by, and references, other projects
+   (see NOTICE.md). No third-party source code is knowingly included. Third-party assets
+   (Unreal Engine, Mixamo characters/animations, clip libraries) are NOT included and remain
+   under their own licenses; you must obtain them yourself and follow their terms.
+
+4. Contributions: by submitting a contribution you agree it may be used under this license
+   and under any future license the project adopts.
+
+5. No warranty: THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED. IT IS AN EARLY ALPHA, KNOWN TO BE BROKEN, AND CAN MODIFY OR DAMAGE UNREAL PROJECTS.
+   USE ONLY ON COPIES YOU CAN AFFORD TO LOSE. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR ANY
+   CLAIM, DAMAGES OR OTHER LIABILITY ARISING FROM ITS USE.
+
+For other uses, open an issue on the repository to ask.
