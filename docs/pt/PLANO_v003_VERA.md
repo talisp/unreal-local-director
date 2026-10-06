@@ -15,6 +15,37 @@ Commits fixados na avaliação:
 | unreal-harness | `09a6bba` | 2026-08-01 | código Python de testes e ideias (MIT) |
 | Aethyr | `96bd116` | 2026-10-06 | só ideias; a licença dele exige crédito se usarmos código |
 | UnrealCV | `67d466a` | 2026-09-04 | reserva (exige compilar C++) |
+| [ue58-mcp-field-notes](https://github.com/PavelVyny/ue58-mcp-field-notes) (Pavel Vyny) | HEAD de 2026-10-06 | 2026-10-06 | armadilhas do MCP nativo do UE 5.8 (CC BY 4.0: pode citar com crédito) |
+
+## Correção depois das field notes (06/10)
+1. **O código do VERA não roda pelo caminho que o Director usa hoje.**
+   - O `execute_tool_script` da Epic é um sandbox sem `unreal`, `os` nem arquivos.
+   - O VERA usa a API `unreal` direto, pela ponte dele.
+   - O caminho certo é portar as peças como **toolset Python dentro do editor**, registrado no MCP oficial, no mesmo formato do `editor_toolset/florentia_anim_tools.py`. Esse arquivo foi preparado e nunca instalado.
+   - Assim continua tudo na porta 8001, sob a mesma trava; a ponte do VERA fica só como plano B.
+   - Isso vira o **primeiro passo da F3**: instalar o toolset próprio, o que exige reiniciar o editor uma vez.
+2. **Riscos no código atual, a conferir no Unreal:**
+   - `find_actors` corta em 20 resultados sem avisar, e a plateia tem mais de 20 pessoas (PC_19, PC_20…). Afeta `_skeletal_actors` / `resolver_ator` e `limpar_estudio`.
+   - Depois de PIE ou hot reload, `save_assets` pode negar que o asset existe e o save se perde. O save do material do estúdio não confere o retorno.
+   - Em script, um erro desfaz tudo o que o script já fez e pode **derrubar o editor** se o asset estiver aberto na janela dele (um `refPath` errado basta). `.get(chave, padrão)` levanta erro no sandbox.
+   - `set_properties` que falha apaga as propriedades que tocou e nunca dispara `PostEditChangeProperty`.
+   - Resultado vazio não distingue "não existe" de "contexto errado".
+   - `CaptureViewport`:
+     - a primeira captura depois de uma mudança pode trazer o quadro anterior (a mesma causa da nossa captura de aquecimento);
+     - conferir `cameraLocation` na resposta;
+     - não renderiza partículas.
+3. **Esses itens viram:**
+   - entradas da taxonomia fechada / `resolver` e lições iniciais;
+   - portões da F2: `find_assets` antes de usar caminho; nada de editor de asset aberto antes de script; conferir o save.
+4. **Para os vídeos (Sequencer, depois):**
+   - `create_level_sequence` sobrescreve sem avisar;
+   - a seção nasce com faixa 0..0;
+   - a duração do ease é em ticks, não em quadros;
+   - `set_camera_cut_binding` está quebrado (o contorno é `CameraBindingID` via `set_properties`);
+   - `get_actor_transform_at_frame` serve para seguir trajetória.
+5. **Para a praça (PCG):**
+   - nunca `GetNodeDataView`, que trava o editor;
+   - "Failed to call Execute" significa ocupado: esperar ~50 s.
 
 ---
 
