@@ -1,0 +1,71 @@
+{
+ "frente": [
+  -0.0,
+  1.0
+ ],
+ "sequencia": {
+  "avanco_total_cm": 643.12,
+  "faixas": [
+   {
+    "ate": 88,
+    "avanco_cm": 190.54,
+    "clipe": "Start_Walking_Anim",
+    "de": 0,
+    "offset_cm": 0.0
+   },
+   {
+    "ate": 130,
+    "avanco_cm": 150.16,
+    "clipe": "Walking_Anim",
+    "de": 88,
+    "offset_cm": 190.54
+   },
+   {
+    "ate": 172,
+    "avanco_cm": 150.16,
+    "clipe": "Walking_Anim",
+    "de": 130,
+    "offset_cm": 340.7
+   },
+   {
+    "ate": 252,
+    "avanco_cm": 152.27,
+    "clipe": "Stop_Walking_Anim",
+    "de": 172,
+    "offset_cm": 490.85
+   }
+  ],
+  "ok": true,
+  "quadros": 252,
+  "sequencia": "/Game/_AnimLab/Experimentos/SEQ_TESTE_326360678.SEQ_TESTE_326360678"
+ },
+ "trocas": [
+  {
+   "quadro": 88,
+   "para": "Walking_Anim",
+   "salto_quadril_cm": 5.0,
+   "salto_dedos_cm": 21.2
+  },
+  {
+   "quadro": 130,
+   "para": "Walking_Anim",
+   "salto_quadril_cm": 3.0,
+   "salto_dedos_cm": 12.6
+  },
+  {
+   "quadro": 172,
+   "para": "Stop_Walking_Anim",
+   "salto_quadril_cm": 6.6,
+   "salto_dedos_cm": 11.0
+  }
+ ],
+ "video": {
+  "arquivo": "<local>",
+  "quadros": 84
+ },
+ "avanco_medido_quadril_cm": 644.0,
+ "fechar": {
+  "apagou": true,
+  "ok": true
+ }
+}

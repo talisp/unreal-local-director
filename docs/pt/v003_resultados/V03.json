@@ -1,0 +1,107 @@
+{
+ "pedido": "V03",
+ "frente": [
+  0.0,
+  1.0
+ ],
+ "testes": [
+  {
+   "teste": "a porta abre",
+   "esperado": ">= 60 graus",
+   "observado": 76.83,
+   "ok": true
+  },
+  {
+   "teste": "começa a abrir pela mão (não pelo peito)",
+   "esperado": "mão ou antebraço",
+   "observado": "RightHand",
+   "ok": true
+  },
+  {
+   "teste": "passa pelo vão",
+   "esperado": "quadril >= 30 cm além, dentro do vão (|lat| < 70)",
+   "observado": [
+    151.0,
+    -1.8
+   ],
+   "ok": true
+  },
+  {
+   "teste": "não atravessa as paredes",
+   "esperado": "nenhum osso no plano fora do vão",
+   "observado": [],
+   "ok": true
+  }
+ ],
+ "plano": {
+  "alcance_mao_cm": 70.4,
+  "andar": 342.8,
+  "erro_andar_cm": 13.2
+ },
+ "sequencia": {
+  "faixas": [
+   {
+    "ate": 88,
+    "avanco_cm": 190.54,
+    "clipe": "Start_Walking_Anim",
+    "de": 0,
+    "inicio_xy": [
+     10000.0,
+     0.0
+    ],
+    "yaw": 0.0
+   },
+   {
+    "ate": 168,
+    "avanco_cm": 152.27,
+    "clipe": "Stop_Walking_Anim",
+    "de": 88,
+    "inicio_xy": [
+     10000.0,
+     190.5
+    ],
+    "yaw": 0.0
+   },
+   {
+    "ate": 291,
+    "avanco_cm": 212.05,
+    "clipe": "Open_Door_Outwards_Anim",
+    "de": 168,
+    "inicio_xy": [
+     10000.0,
+     342.8
+    ],
+    "yaw": 0.0
+   }
+  ],
+  "fim_previsto_xy": [
+   10000.0,
+   554.9
+  ],
+  "ok": true,
+  "quadros": 291,
+  "sequencia": "/Game/_AnimLab/Experimentos/SEQ_TESTE_331932573.SEQ_TESTE_331932573"
+ },
+ "porta": {
+  "final_graus": 76.83,
+  "primeiro_toque": {
+   "quadro": 180,
+   "osso": "RightHand"
+  },
+  "chaves": {
+   "chaves": 104,
+   "ok": true
+  },
+  "dobradica": "esquerda",
+  "invasao_batente_max_cm": 0.0,
+  "largura_cm": 150.0
+ },
+ "video": {
+  "arquivo": "<local>",
+  "quadros": 146
+ },
+ "fechar": {
+  "apagou": true,
+  "ok": true
+ }
+}

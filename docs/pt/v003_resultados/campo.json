@@ -1,0 +1,51 @@
+{
+ "secao": "campo",
+ "quando": "2026-10-06T18:51:52",
+ "versao_codigo": "762015bb56b4",
+ "resultados": [
+  {
+   "teste": "find_actors corta em 20 sem avisar (field notes)",
+   "esperado": "len(find_actors) < total se total > 20",
+   "observado": {
+    "find_actors": 93,
+    "inventario_completo": 86
+   },
+   "ok": true,
+   "detalhe": {
+    "corta": false,
+    "exatamente_20": false
+   }
+  },
+  {
+   "teste": "_skeletal_actors do Director vê todos os personagens",
+   "esperado": 25,
+   "observado": 25,
+   "ok": true,
+   "detalhe": "se falhar: resolver_ator e limpar_estudio precisam do inventário completo"
+  },
+  {
+   "teste": "CaptureViewport usa a pose pedida (cameraLocation)",
+   "esperado": {
+    "x": 10300.0,
+    "y": -50.0,
+    "z": 120.0
+   },
+   "observado": {
+    "x": 10300,
+    "y": -50,
+    "z": 120
+   },
+   "ok": true,
+   "detalhe": {
+    "chaves_resposta": [
+     "cameraFOV",
+     "cameraLocation",
+     "cameraRotation",
+     "grid",
+     "image",
+     "labeledActors"
+    ]
+   }
+  }
+ ]
+}

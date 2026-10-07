@@ -29,7 +29,10 @@ def c_versao():
 @caso("banco e mapa válidos: pedidos só apontam para capacidades do mapa; disponível cita ferramenta real")
 def b_valido():
     assert D.validar() == [], D.validar()
-    assert 18 <= len(D.pedidos()) <= 22 and {p["nivel"] for p in D.pedidos()} == {1, 2}
+    v0 = [p for p in D.pedidos() if p.get("familia") != "vertical"]
+    vert = sorted(p["id"] for p in D.pedidos() if p.get("familia") == "vertical")  # v0.0.3 bloco 2: escada do chá
+    assert 18 <= len(v0) <= 22 and {p["nivel"] for p in D.pedidos()} == {1, 2}
+    assert vert == [f"V0{i}" for i in range(1, 8)], vert
 
 
 @caso("capacidade inexistente continua inexistente (as futuras estão marcadas) e não cita ferramenta")

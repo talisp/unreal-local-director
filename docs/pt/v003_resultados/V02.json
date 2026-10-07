@@ -1,0 +1,93 @@
+{
+ "pedido": "V02",
+ "frente": [
+  0.0,
+  1.0
+ ],
+ "testes": [
+  {
+   "teste": "nunca atravessa a porta",
+   "esperado": "projeção do quadril < 0",
+   "observado": -53.9,
+   "ok": true
+  },
+  {
+   "teste": "para perto da porta",
+   "esperado": "30 a 90 cm antes",
+   "observado": 54.1,
+   "ok": true
+  },
+  {
+   "teste": "levantar → andar sem salto",
+   "esperado": "quadril <= 10 cm",
+   "observado": 2.2,
+   "ok": true
+  },
+  {
+   "teste": "termina de pé",
+   "esperado": "quadril 88 a 105 cm",
+   "observado": 91.3,
+   "ok": true
+  }
+ ],
+ "receita": {
+  "partes": [
+   "levantar",
+   "andar"
+  ],
+  "andar_pedido_cm": 335.4,
+  "avanco_previsto": 389.4
+ },
+ "sequencia": {
+  "faixas": [
+   {
+    "ate": 68,
+    "avanco_cm": 46.64,
+    "clipe": "Sit_To_Stand_Anim",
+    "de": 0,
+    "inicio_xy": [
+     10000.0,
+     0.0
+    ],
+    "yaw": 0.0
+   },
+   {
+    "ate": 156,
+    "avanco_cm": 190.54,
+    "clipe": "Start_Walking_Anim",
+    "de": 68,
+    "inicio_xy": [
+     10000.0,
+     46.6
+    ],
+    "yaw": 0.0
+   },
+   {
+    "ate": 236,
+    "avanco_cm": 152.27,
+    "clipe": "Stop_Walking_Anim",
+    "de": 156,
+    "inicio_xy": [
+     10000.0,
+     237.2
+    ],
+    "yaw": 0.0
+   }
+  ],
+  "fim_previsto_xy": [
+   10000.0,
+   389.4
+  ],
+  "ok": true,
+  "quadros": 236,
+  "sequencia": "/Game/_AnimLab/Experimentos/SEQ_TESTE_328578195.SEQ_TESTE_328578195"
+ },
+ "video": {
+  "arquivo": "<local>",
+  "quadros": 118
+ },
+ "fechar": {
+  "apagou": true,
+  "ok": true
+ }
+}

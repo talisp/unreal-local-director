@@ -1,0 +1,267 @@
+{
+ "secao": "ossos",
+ "quando": "2026-10-06T19:13:49",
+ "versao_codigo": "762015bb56b4",
+ "resultados": [
+  {
+   "teste": "ossos lidos: Talking_2",
+   "esperado": "pés e quadril",
+   "observado": [
+    "Hips",
+    "LeftFoot",
+    "LeftToeBase",
+    "LeftToe_End",
+    "RightFoot",
+    "RightToeBase",
+    "RightToe_End"
+   ],
+   "ok": true,
+   "detalhe": {
+    "ossos": {
+     "Hips": [
+      9995.77,
+      -1.31,
+      96.87
+     ],
+     "LeftFoot": [
+      10016.92,
+      -0.02,
+      10.5
+     ],
+     "LeftToeBase": [
+      10023.64,
+      12.23,
+      3.29
+     ],
+     "LeftToe_End": [
+      10028.08,
+      21.19,
+      3.26
+     ],
+     "RightFoot": [
+      9988.15,
+      -3.31,
+      10.49
+     ],
+     "RightToeBase": [
+      9981.46,
+      8.95,
+      3.28
+     ],
+     "RightToe_End": [
+      9977.04,
+      17.92,
+      3.11
+     ]
+    },
+    "pes_z_min": 3.11,
+    "silhueta": {
+     "deriva_xy": [
+      "PASS",
+      5.2
+     ],
+     "pes_plantados": [
+      "PASS",
+      0.836
+     ]
+    },
+    "aplicar_ok": true,
+    "aplicar_bloqueio": null
+   }
+  },
+  {
+   "teste": "ossos lidos: Waving_2",
+   "esperado": "pés e quadril",
+   "observado": [
+    "Hips",
+    "LeftFoot",
+    "LeftToeBase",
+    "LeftToe_End",
+    "RightFoot",
+    "RightToeBase",
+    "RightToe_End"
+   ],
+   "ok": true,
+   "detalhe": {
+    "ossos": {
+     "Hips": [
+      10142.0,
+      6.52,
+      104.63
+     ],
+     "LeftFoot": [
+      10157.74,
+      1.22,
+      16.19
+     ],
+     "LeftToeBase": [
+      10159.86,
+      15.02,
+      8.98
+     ],
+     "LeftToe_End": [
+      10160.97,
+      24.96,
+      8.88
+     ],
+     "RightFoot": [
+      10128.72,
+      5.87,
+      16.19
+     ],
+     "RightToeBase": [
+      10124.43,
+      19.17,
+      8.98
+     ],
+     "RightToe_End": [
+      10121.73,
+      28.8,
+      8.83
+     ]
+    },
+    "pes_z_min": 8.83,
+    "silhueta": {
+     "deriva_xy": [
+      "PASS",
+      2.2
+     ],
+     "pes_plantados": [
+      "PASS",
+      0.828
+     ]
+    },
+    "aplicar_ok": true,
+    "aplicar_bloqueio": null
+   }
+  },
+  {
+   "teste": "ossos lidos: Hands_Forward_Gesture",
+   "esperado": "pés e quadril",
+   "observado": [
+    "Hips",
+    "LeftFoot",
+    "LeftToeBase",
+    "LeftToe_End",
+    "RightFoot",
+    "RightToeBase",
+    "RightToe_End"
+   ],
+   "ok": true,
+   "detalhe": {
+    "ossos": {
+     "Hips": [
+      10300.26,
+      -0.13,
+      99.0
+     ],
+     "LeftFoot": [
+      10317.78,
+      6.76,
+      10.61
+     ],
+     "LeftToeBase": [
+      10321.51,
+      20.21,
+      3.38
+     ],
+     "LeftToe_End": [
+      10323.77,
+      29.93,
+      4.04
+     ],
+     "RightFoot": [
+      10290.87,
+      -4.17,
+      10.49
+     ],
+     "RightToeBase": [
+      10284.25,
+      8.13,
+      3.28
+     ],
+     "RightToe_End": [
+      10279.89,
+      17.07,
+      4.38
+     ]
+    },
+    "pes_z_min": 3.28,
+    "silhueta": {
+     "deriva_xy": [
+      "PASS",
+      3.2
+     ],
+     "pes_plantados": [
+      "PASS",
+      0.827
+     ]
+    },
+    "aplicar_ok": true,
+    "aplicar_bloqueio": null
+   }
+  },
+  {
+   "teste": "ossos lidos: Walking",
+   "esperado": "pés e quadril",
+   "observado": [
+    "Hips",
+    "LeftFoot",
+    "LeftToeBase",
+    "LeftToe_End",
+    "RightFoot",
+    "RightToeBase",
+    "RightToe_End"
+   ],
+   "ok": true,
+   "detalhe": {
+    "ossos": {
+     "Hips": [
+      10449.17,
+      0.16,
+      93.38
+     ],
+     "LeftFoot": [
+      10467.27,
+      0.16,
+      15.9
+     ],
+     "LeftToeBase": [
+      10468.03,
+      7.84,
+      2.2
+     ],
+     "LeftToe_End": [
+      10467.63,
+      17.02,
+      -1.74
+     ],
+     "RightFoot": [
+      10449.43,
+      -0.77,
+      7.82
+     ],
+     "RightToeBase": [
+      10443.95,
+      11.93,
+      0.35
+     ],
+     "RightToe_End": [
+      10440.57,
+      21.33,
+      -0.03
+     ]
+    },
+    "pes_z_min": -1.74,
+    "silhueta": {
+     "deriva_xy": [
+      "FAIL",
+      "saiu da janela de medida"
+     ]
+    },
+    "aplicar_ok": true,
+    "aplicar_bloqueio": null
+   }
+  }
+ ]
+}

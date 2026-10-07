@@ -1,6 +1,40 @@
 # Changelog
 
-## v0.0.2 — "o Hermes percebe que emperrou, sabe o que fazer e não desperdiça horas" (em construção)
+## v0.0.3 — VERA no Director, guiado por testes verticais (em construção)
+Plano: `docs/PLANO_v003_VERA.md`.
+
+### Bloco 0 — v0.0.2 congelada, não terminada
+- A suíte offline passa 137/137. A dívida de validação real está registrada em `docs/BLOCO5_STATUS.md`. Não houve auditoria Astra da v0.0.2: a auditoria será da candidata da v0.0.3.
+
+### Bloco 1 — porta técnica para o VERA (VALIDADO no Unreal 5.8.3 em 06/10)
+- **DirectorTools**, um toolset Python dentro do editor (`editor_python/`), registrado no MCP oficial via `UE_PYTHONPATH` + `init_unreal.py`, sem escrever no projeto. Ferramentas:
+  - `ping`;
+  - `list_actors` (inventário sem o corte de 20);
+  - `set_pose_eval`, `bone_world_positions`, `bone_position_in_clip`;
+  - captura isolada adaptada do VERA (`capture_isolated_setup` / `_shot` / `_restore`).
+- Créditos: `THIRD_PARTY_NOTICES.md` e `third_party/VERA/LICENSE`. O rascunho antigo `editor_toolset/` sai.
+- Testes offline: `src/testes_v003_bloco1.py` 5/5.
+- **Unreal real** (`tools/bloco1_unreal.py`; resultados em `docs/v003_resultados/`): ping 1/1, campo 3/3, captura 8/8, ossos 4/4.
+  - Instalado via `UE_PYTHONPATH`; carrega sozinho ao abrir o editor.
+  - **Captura isolada:** só o ator pedido aparece (vizinho e piso somem); céu, atmosfera e neblina desligados dão fundo preto e uma silhueta limpa; a cena fica idêntica antes e depois.
+  - **Ossos:** os pés e o quadril são lidos nos 4 clipes de referência. Talking_2 e Hands_Forward concordam com a silhueta (dedos a ~3 cm do piso). Walking também (um pé no ar; a silhueta reprova pela janela). Waving_2, neste instante, mostra os dedos a ~9 cm, contra ~3 cm numa leitura anterior: falta amostrar ao longo do clipe.
+- **Field notes conferidas no 5.8.3:**
+  - `find_actors` NÃO corta em 20 aqui (93 atores);
+  - `CaptureViewport` respeita a pose;
+  - argumento com valor padrão vira obrigatório no MCP (confirmado).
+- **Achados da instalação real:**
+  - `Registration` fica em `toolset_registry.registration`;
+  - recarregar sem desregistrar deixa uma classe inválida ("Invalid Toolset Class"); corrigido, e `reload_toolset` evita reiniciar o editor.
+
+### Bloco 2 — escada vertical e experimento Sequencer (06/10)
+- **Escada vertical:** V01–V07 no banco, 5 capacidades novas no mapa; mapa de lacunas em `docs/MAPA_LACUNAS_V.md` (a lacuna é mecanismo, não clipe).
+- **Experimento A (Sequencer) aprovado:** bloco `andar` com avanço medido 644 cm contra previsto 643 cm, saltos de quadril ≤ 7 cm nas trocas, MP4 gerado e limpeza total. Sequencer adotado como caminho principal; Play só para física.
+- **Movimentos prontos** (`unreal_macros/blocos.py`, testes offline 3/3): `andar(distância)`, `levantar()`, `compor(...)`, com números medidos por `clip_info`.
+- **V03 4/4** (porta empurrada pelo corpo; pré-condição medida e codificada: vão ≥ 150 cm, dobradiça à esquerda). `bone_position_in_clip` corrigida: agora no espaço do corpo e por quadro (antes devolvia relativo ao osso pai e podia disparar o ensure `bValidTime`).
+- **V01 5/5 e V02 4/4 no Unreal** (`tools/bloco2_v.py`), com vídeo, câmera que acompanha e cenário visível (`also_show`, `center_bone`).
+- **DirectorTools:** `seq_build` (receita de passos com giro opcional; substitui `seq_chain_clips`), `clip_info`, `seq_eval_frame`, `seq_close_delete`; `bone_position_in_clip` recusa tempo fora do clipe (antes disparava um ensure `bValidTime` no editor).
+
+## v0.0.2 — "o Hermes percebe que emperrou, sabe o que fazer e não desperdiça horas" (CONGELADA em 06/10; validação real incompleta)
 
 ### Bloco 1 — base estável (promove só o que foi provado no sandbox)
 - **deriva_xy pelas pernas** (exp2, Hermes): corrige o falso-FAIL de conversas/gestos parados (Talking_2 21,0 → 4,7 cm no sandbox); Walking continua reprovando.

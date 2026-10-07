@@ -95,7 +95,7 @@ def sv_espera():
     tp = Tempo("sv4")
     tp.modelo("f", "PC_19", falhos=("deriva_xy",))
     tp.em(0, "f")
-    tp.evento(5, {"evento": "corrida_iniciada", "experimento": "e1", "n": 1, "script": "src/x.py", "prazo_s": 1500})
+    tp.evento(5, {"evento": "corrida_iniciada", "experimento": "e1", "n": 1, "script": "src/x.py", "prazo_s": 3600})  # dentro do prazo (bloco 5: além dele vira corrida_perdida)
     r = tp.sup(60)
     assert not r["alarmes"] and r["esperas_ativas"][0]["tipo"] == "corrida", r
     tp2 = Tempo("sv4b")

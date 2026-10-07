@@ -1,0 +1,146 @@
+{
+ "secao": "captura",
+ "quando": "2026-10-06T18:59:39",
+ "versao_codigo": "762015bb56b4",
+ "resultados": [
+  {
+   "teste": "setup da captura isolada (yaw 0)",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": {
+    "camera": [
+     10242.43,
+     2.16,
+     111.44
+    ],
+    "centro": [
+     10000.0,
+     2.16,
+     90.23
+    ],
+    "distancia": 243.4,
+    "ok": true,
+    "rig": "TESTE_DIRECTOR_CaptureRig"
+   }
+  },
+  {
+   "teste": "foto isolada gravada (yaw 0)",
+   "esperado": true,
+   "observado": "<local>",
+   "ok": true,
+   "detalhe": {
+    "alvo": "TESTE_BONECO_0",
+    "arquivo": "<local>",
+    "erro": null,
+    "ok": true
+   }
+  },
+  {
+   "teste": "setup da captura isolada (yaw 90)",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": {
+    "camera": [
+     10000.0,
+     244.59,
+     111.44
+    ],
+    "centro": [
+     10000.0,
+     2.16,
+     90.23
+    ],
+    "distancia": 243.4,
+    "ok": true,
+    "rig": "TESTE_DIRECTOR_CaptureRig"
+   }
+  },
+  {
+   "teste": "foto isolada gravada (yaw 90)",
+   "esperado": true,
+   "observado": "<local>",
+   "ok": true,
+   "detalhe": {
+    "alvo": "TESTE_BONECO_0",
+    "arquivo": "<local>",
+    "erro": null,
+    "ok": true
+   }
+  },
+  {
+   "teste": "restauração da captura",
+   "esperado": true,
+   "observado": true,
+   "ok": true,
+   "detalhe": {
+    "erros": [],
+    "ok": true,
+    "restaurado": true,
+    "ticks_restaurados": 0
+   }
+  },
+  {
+   "teste": "cena idêntica antes/depois (nenhum rig sobrando)",
+   "esperado": "sem diferença",
+   "observado": [],
+   "ok": true,
+   "detalhe": null
+  },
+  {
+   "teste": "silhueta isolada (yaw 0)",
+   "esperado": "fundo uniforme, 0 < fração < 0,25, bbox dentro da imagem",
+   "observado": {
+    "pixels": 4686,
+    "fracao": 0.0179,
+    "bbox_h": 197,
+    "bbox_w": 44,
+    "fundo_rgb": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ok": true,
+   "detalhe": {
+    "pixels": 4686,
+    "fracao": 0.0179,
+    "bbox_h": 197,
+    "bbox_w": 44,
+    "fundo_rgb": [
+     0,
+     0,
+     0
+    ]
+   }
+  },
+  {
+   "teste": "silhueta isolada (yaw 90)",
+   "esperado": "fundo uniforme, 0 < fração < 0,25, bbox dentro da imagem",
+   "observado": {
+    "pixels": 6800,
+    "fracao": 0.0259,
+    "bbox_h": 198,
+    "bbox_w": 202,
+    "fundo_rgb": [
+     0,
+     0,
+     0
+    ]
+   },
+   "ok": true,
+   "detalhe": {
+    "pixels": 6800,
+    "fracao": 0.0259,
+    "bbox_h": 198,
+    "bbox_w": 202,
+    "fundo_rgb": [
+     0,
+     0,
+     0
+    ]
+   }
+  }
+ ]
+}

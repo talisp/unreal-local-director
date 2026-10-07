@@ -12,8 +12,8 @@ These are **Blender** projects (Python `bpy`). Nothing in them runs in Unreal: w
 - **Mixamo**-style characters and animation clips (Adobe) — not redistributed.
 - Python libraries: `mcp`, `numpy`, `Pillow`, `jsonschema`, `imageio-ffmpeg`.
 
-## Studied for the v0.0.3 plan (no code copied yet)
-- **[ezesubu/VERA](https://github.com/ezesubu/VERA)** (MIT, © 2026 EazyLabs / maVERAick), commit `8eeb1e7` — planned source of adapted code (isolated actor capture, retargeting, scene mood). When code is adapted, its license and per-file attribution will be added under `third_party/`.
+## Used in v0.0.3
+- **[ezesubu/VERA](https://github.com/ezesubu/VERA)** (MIT, © 2026 EazyLabs / maVERAick), commit `8eeb1e7` — **code adapted** in `editor_python/director_tools/toolset.py` (isolated actor capture, off-viewport pose evaluation, idempotent restore). License in `third_party/VERA/LICENSE`; details in `THIRD_PARTY_NOTICES.md`.
 - **[oliver-io/unreal-harness](https://github.com/oliver-io/unreal-harness)** (MIT, © 2026 Oliver Carrillo), commit `09a6bba` — gates, dry-run, closed error taxonomy, progressive disclosure, real-editor tests with a coverage oracle.
 - **[Aethyr](https://aethyr.gg)** by Doug Fessler — ideas only: preview ops, batch rollback, backup ring, read-only mode and auditor.
 - **[PavelVyny/ue58-mcp-field-notes](https://github.com/PavelVyny/ue58-mcp-field-notes)** (CC BY 4.0, Pavel Vyny) — field notes on the native UE 5.8 MCP; our plan cites its findings.

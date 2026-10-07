@@ -1,144 +1,153 @@
-# Plano v0.0.3: VERA dentro do Director, com a engenharia do unreal-harness
+# Plano v0.0.3 (v2): VERA no Director, guiado por testes verticais
 
-Rascunho de 06/10/2026, para debate e para a auditoria do Astra. Nada daqui está implementado.
+Versão 2 do plano, de 06/10/2026. Junta o plano original do Claude, as revisões do ChatGPT e as correções vindas das field notes do MCP 5.8. Está em execução na branch `v0.0.3`.
 
-## Decisão
-1. **Incorporar ao Director** tudo do VERA que sirva ao objetivo: um diretor autônomo que mede, prova, percebe que emperrou e gera vídeo de referência. O código entra adaptado, com crédito.
-2. **Manter o VERA como ferramenta externa**, sem modificação, para uso interativo do Talis com o Strata/Qwen. Ele roda numa **cópia** do projeto, nunca no Florentia enquanto o Hermes trabalha.
-3. **O unreal-harness entra como fonte de engenharia.** É dele a moldura que torna as peças do VERA seguras sem um humano aprovando cada passo.
+## Objetivo
+Incorporar ao Director o máximo de engenharia e código útil do VERA, com a atribuição correta, e usar esse salto como base para avançar na execução de **pedidos humanos compostos**.
+- **A ordem de incorporação** não vem do inventário do VERA. Vem dos bloqueios observados nos testes verticais de Pedidos Atendidos.
+- **Projetos além do VERA** só são estudados e incorporados quando uma lacuna concreta justificar.
 
-Commits fixados na avaliação:
+## Regra arquitetural
+**A partir do Bloco 2, nenhum bloco novo é aberto sem citar três coisas:**
+1. qual pedido vertical está bloqueado;
+2. qual capacidade está faltando;
+3. que evidência vai mostrar que o bloco resolveu a lacuna.
 
-| Projeto | Commit | Data | Uso |
+## Economia de cota
+- Claude e Astra são gastos onde vêm os saltos grandes: o toolset, o VERA e o primeiro teste vertical.
+- A v0.0.2 **não** é terminada isoladamente (Bloco 0).
+- O Astra audita **uma vez**, a candidata da v0.0.3 que de fato vai para a produção.
+
+## Posicionamento na publicação da v0.0.3 (pedido do Talis, 06/10)
+Quando a v0.0.3 for para o GitHub (não antes), o README e a descrição do repositório mudam de contexto:
+- **O Director não é mais "uma ferramenta de IA" para o Unreal.**
+- **A função dele:** transformar intenção humana em ações verificadas no Unreal, usando uma LLM local que, sozinha, não teria capacidade de operar o engine de forma confiável.
+- **O valor está na camada de verificação:** macros, medidas, portões, trava, detector de emperramento e restauração. O modelo é só a ponte entre o pedido e essa camada.
+
+## Fontes
+| Fonte | Commit | Papel | Quando entra |
 |---|---|---|---|
-| VERA | `8eeb1e7` | 2026-08-10 | código e ideias (MIT) |
-| unreal-harness | `09a6bba` | 2026-08-01 | código Python de testes e ideias (MIT) |
-| Aethyr | `96bd116` | 2026-10-06 | só ideias; a licença dele exige crédito se usarmos código |
-| UnrealCV | `67d466a` | 2026-09-04 | reserva (exige compilar C++) |
-| [ue58-mcp-field-notes](https://github.com/PavelVyny/ue58-mcp-field-notes) (Pavel Vyny) | HEAD de 2026-10-06 | 2026-10-06 | armadilhas do MCP nativo do UE 5.8 (CC BY 4.0: pode citar com crédito) |
-
-## Correção depois das field notes (06/10)
-1. **O código do VERA não roda pelo caminho que o Director usa hoje.**
-   - O `execute_tool_script` da Epic é um sandbox sem `unreal`, `os` nem arquivos.
-   - O VERA usa a API `unreal` direto, pela ponte dele.
-   - O caminho certo é portar as peças como **toolset Python dentro do editor**, registrado no MCP oficial, no mesmo formato do `editor_toolset/florentia_anim_tools.py`. Esse arquivo foi preparado e nunca instalado.
-   - Assim continua tudo na porta 8001, sob a mesma trava; a ponte do VERA fica só como plano B.
-   - Isso vira o **primeiro passo da F3**: instalar o toolset próprio, o que exige reiniciar o editor uma vez.
-2. **Riscos no código atual, a conferir no Unreal:**
-   - `find_actors` corta em 20 resultados sem avisar, e a plateia tem mais de 20 pessoas (PC_19, PC_20…). Afeta `_skeletal_actors` / `resolver_ator` e `limpar_estudio`.
-   - Depois de PIE ou hot reload, `save_assets` pode negar que o asset existe e o save se perde. O save do material do estúdio não confere o retorno.
-   - Em script, um erro desfaz tudo o que o script já fez e pode **derrubar o editor** se o asset estiver aberto na janela dele (um `refPath` errado basta). `.get(chave, padrão)` levanta erro no sandbox.
-   - `set_properties` que falha apaga as propriedades que tocou e nunca dispara `PostEditChangeProperty`.
-   - Resultado vazio não distingue "não existe" de "contexto errado".
-   - `CaptureViewport`:
-     - a primeira captura depois de uma mudança pode trazer o quadro anterior (a mesma causa da nossa captura de aquecimento);
-     - conferir `cameraLocation` na resposta;
-     - não renderiza partículas.
-3. **Esses itens viram:**
-   - entradas da taxonomia fechada / `resolver` e lições iniciais;
-   - portões da F2: `find_assets` antes de usar caminho; nada de editor de asset aberto antes de script; conferir o save.
-4. **Para os vídeos (Sequencer, depois):**
-   - `create_level_sequence` sobrescreve sem avisar;
-   - a seção nasce com faixa 0..0;
-   - a duração do ease é em ticks, não em quadros;
-   - `set_camera_cut_binding` está quebrado (o contorno é `CameraBindingID` via `set_properties`);
-   - `get_actor_transform_at_frame` serve para seguir trajetória.
-5. **Para a praça (PCG):**
-   - nunca `GetNodeDataView`, que trava o editor;
-   - "Failed to call Execute" significa ocupado: esperar ~50 s.
+| [VERA](https://github.com/ezesubu/VERA) (MIT, EazyLabs / maVERAick) | `8eeb1e7` | principal doador de código: percepção, animação, retarget, clima, PCG | por lacuna; o inventário abaixo é o cardápio |
+| [unreal-harness](https://github.com/oliver-io/unreal-harness) (MIT, Oliver Carrillo) | `09a6bba` | contratos, portões, `dry_run`, testes reais, captura fixa | envolvendo cada peça que entra |
+| [Aethyr](https://aethyr.gg) (Doug Fessler) | `96bd116` | só ideias: prévia, rollback, backup, só leitura | idem |
+| [ue58-mcp-field-notes](https://github.com/PavelVyny/ue58-mcp-field-notes) (CC BY 4.0, Pavel Vyny) | 2026-10-06 | armadilhas do MCP nativo do 5.8 | já no Bloco 1, como testes e portões |
+| [UnrealCV](https://github.com/unrealcv/unrealcv) (MIT) | `67d466a` | percepção: máscara por objeto, profundidade, fluxo | **gatilho:** captura isolada + ossos + traces não dão a medida (oclusão entre vários personagens, movimento por pixel). Prioridade de estudo, não de instalação: exige toolchain C++ |
+| [UAH](https://github.com/viktordanov/uah) | — | objetivo persistente, orçamentos, anti-loop | gatilho por lacuna (não lido pelo Claude) |
+| [MCPToolBox](https://github.com/YuanBaoSMadLab/MCPToolBox) | — | segundo modelo local, visão auxiliar, pruning | idem |
+| [UnrealSpatialTwin](https://github.com/Musca420/UnrealSpatialTwin) | — | modelo espacial persistente | idem |
+| [GripForge MCP](https://github.com/gripforgeai/mcp) | — | attach, retarget, interação com objetos | idem |
+| [3d-asset-server](https://github.com/arielshad/3d-asset-server) | — | aquisição de assets | idem ("crie uma praça") |
 
 ---
 
-## Pipeline
+## Bloco 0: congelar a v0.0.2, não terminá-la (FEITO em 06/10)
+- Suíte offline: 137/137.
+- Estado e dívida de validação estão em `docs/BLOCO5_STATUS.md`; tag `v0.0.2-congelada`.
+- A v0.0.2 é "base experimental, validação real incompleta". Trava, PAUSA, supervisor, detector e controlador de experimentos são fundações **não totalmente provadas**: se falharem durante a v0.0.3, viram prioridade imediata.
+- **Revalidação:** seletiva quando a v0.0.3 mexer em cada área; integral na auditoria final.
+- **Custo aceito:** até a candidata da v0.0.3 ir para a produção, o Hermes segue sem o detector e o supervisor da v0.0.2.
 
-### F0. Pré-requisito: fechar a v0.0.2
-O que falta do Bloco 5:
-- `testes_bloco5` e suíte offline;
-- contrato e workflow no Unreal;
-- paridade;
-- pacote de auditoria;
-- auditoria do Astra.
+## Bloco 1: a porta técnica para o VERA
+**Problema:** o executor de scripts da Epic (`execute_tool_script`) é um sandbox sem `unreal`, `os` nem arquivos, e o código do VERA usa a API `unreal` direto.
 
-**Porquê:** não se empilha mudança sobre código não auditado.
+**Solução:**
+- um **toolset Python dentro do editor** (`DirectorTools`), no formato oficial da Epic (`unreal.ToolsetDefinition` + `toolset_registry.tool_call`), carregado por `init_unreal.py`;
+- a pasta é apontada por `UE_PYTHONPATH`, em C:, sem escrever no projeto em Y:;
+- tudo continua pela porta 8001 e sob a mesma trava; a ponte socket do VERA fica só como plano B.
 
-### F1. Base legal (antes de copiar uma linha)
-- `third_party/VERA/LICENSE` e `third_party/unreal-harness/LICENSE`, cópias exatas.
-- `THIRD_PARTY_NOTICES.md` com nome, autor, licença, commit fixado e lista de arquivos adaptados.
-- Cabeçalho em cada arquivo adaptado: `# Adaptado de VERA (c) 2026 EazyLabs / maVERAick — MIT — commit 8eeb1e7: <arquivo original>`.
-- Seção "Créditos" no README público. Ideias sem código copiado (Aethyr, harness) entram como "inspirado em".
-- `exportar_publico.py` passa a exigir os avisos no pacote público. Se faltarem, falha.
+**Entregas:**
+1. **`DirectorTools`** com:
+   - `ping` (prova de Python completo);
+   - posição de ossos no mundo, avaliando a pose fora do viewport (`ALWAYS_TICK_POSE_AND_REFRESH_BONES`, restaurado depois);
+   - **captura isolada de um ator** (SceneCapture2D + show-only list, adaptada do VERA), com restauração idempotente;
+   - inventário completo de atores (sem o corte de 20).
+2. **Instalação reversível:**
+   - variável `UE_PYTHONPATH` + um reinício do editor, numa janela combinada com o Talis e o Hermes em PAUSA;
+   - desinstalar é remover a variável.
+3. **Testes das field notes no Unreal real:**
+   - `find_actors` corta em 20? (comparar com o inventário completo);
+   - o save é comprovado por releitura e disco;
+   - `CaptureViewport` respeita a pose? (`cameraLocation`);
+   - caminhos resolvidos com `find_assets` antes de scripts;
+   - a primeira captura depois de uma mudança traz o quadro anterior?
+4. **Base legal:** `third_party/VERA/LICENSE`, `THIRD_PARTY_NOTICES.md` e cabeçalho em cada arquivo adaptado.
 
-### F2. Fundação de segurança (vem do harness e do Aethyr; obrigatória antes das peças do VERA que mudam a cena)
-O VERA protege as ações destrutivas pedindo confirmação ao humano. No laço autônomo não há humano, então isso precisa virar regra no servidor:
-1. **Portões em ordem fixa**, antes de qualquer macro que mude algo:
-   - editor pronto;
-   - sem janela modal;
-   - sem Play;
-   - sem PAUSA;
-   - trava minha.
+**Aceite:**
+- `list_toolsets` mostra `DirectorTools` e as 4 ferramentas respondem;
+- a captura isolada não deixa ator nem mudança na cena (inventário antes = depois);
+- os ossos de pé/perna batem com a silhueta em pelo menos 3 dos 4 clipes de referência, e onde discordam o caso é explicado;
+- cada risco das field notes vira teste com resultado registrado.
 
-   A recusa usa um código da taxonomia fechada.
-2. **`dry_run` em toda macro que muda a cena.** Ela devolve o que mudaria (atores, propriedades, assets) sem aplicar. Macro que não sabe fazer prévia recusa o `dry_run`; nunca aplica calada.
-3. **Contrato de mutação:**
-   - cada macro declara o que toca;
-   - o Director fotografa esse estado antes;
-   - na falha ou no fim do experimento, restaura (generaliza o padrão `setup → pose → capture → restore` do VERA);
-   - antes de qualquer `save_asset`, entra num anel com as 5 últimas cópias (ideia do Aethyr).
-4. **Modo só leitura no servidor.** Ele esconde e recusa toda ferramenta que escreve (perfil do Hermes auditor/diagnóstico).
-5. **Resultado grande vira resumo + id.** O resto se lê por partes (`ler_resultado`).
-6. **Catálogo progressivo.** O Hermes vê um núcleo de cerca de 8 ferramentas mais `catalogo_buscar` / `catalogo_descrever` / `catalogo_chamar`. É o que permite receber as ferramentas do VERA sem inflar o contexto do Qwen.
+## Bloco 2: benchmark vertical antes de escolher o resto da arquitetura
+**Família V no `pedidos_v0`:**
 
-### F3. Percepção, somente leitura, primeiro (risco baixo)
-O ganho é grande e nada é destruído:
-- **Captura isolada (show-only list)** como novo motor de medida da silhueta, no lugar do estúdio/"universo paralelo".
-- **Ossos no mundo** como segunda medida de pés e pernas.
-- **Diagnóstico de animabilidade** (esqueleto e clipes compatíveis).
-- **Inventário da cena.**
-- **Log do editor.**
+    V01  Marcos se levanta.
+    V02  Marcos se levanta e vai até a porta.
+    V03  Marcos vai até a porta e a abre.
+    V04  Marcos abre a porta e deixa Afonso entrar.
+    V05  Marcos e Afonso vão até as cadeiras e se sentam.
+    V06  Marcos e Afonso pegam as xícaras.
+    V07  Marcos e Afonso se sentam e tomam chá.
 
-A captura isolada só substitui o estúdio depois de vencer o estúdio v2 em experimento com dados reais (veja os critérios abaixo).
+**Rodar com o Director atual**, sabendo que quase tudo vai falhar. O produto é o **mapa de lacunas**:
+`pedido → etapa alcançada → capacidade ausente → motivo da falha → mecanismo que provavelmente resolve`.
 
-### F4. Ações (com portões, `dry_run` e restauração)
-- **Aplicar animação:** a escolha de um clipe compatível com o esqueleto vai para `aplicar_clipe`.
-- **Retarget:** IK Rig, Retargeter e retarget em lote viram a macro nova `ensinar_clipe`, que traz animações de outros esqueletos para o YBot.
-  - Os assets vão sempre para `/Game/_AnimLab/Retarget/`.
-  - Nunca sobrescreve.
-  - Nunca toca SK_YBot nem a sala de audiência.
-- **Clima de cena:** `set_vibe` / `clear_vibe` viram `clima_da_cena` para os vídeos de referência. Os atores são marcados e o efeito é reversível.
-- **Desfazer** a última transação, como apoio da restauração e não como substituto.
+**Decisão Sequencer × Play, por experimento e não no papel.** Dois experimentos mínimos sobre o mesmo pedido ("andar três metros até um marcador"):
+- **A, Sequencer:** trajetória + animação + avaliação + captura.
+- **B, Play:** CharacterMovement/nav + animação + chegada + captura.
+- **Hipótese C, híbrida (a mais provável):** Sequencer como linha do tempo autoral e resultado final; Play como simulador/verificador quando física ou navegação importam.
 
-### F5. Transporte reserva
-A ponte do VERA é um socket que roda o código no thread principal via slate tick. Ela vira **reserva** da porta 8001, nunca o padrão:
-- só é usada depois de uma falha medida da 8001;
-- um teste de paridade roda a mesma macro pelos dois caminhos e compara.
+Critérios de comparação:
+- determinismo e repetibilidade;
+- facilidade de verificar o resultado;
+- facilidade de encadear ações;
+- colisão e física;
+- custo em chamadas;
+- recuperação após falha;
+- geração de vídeo;
+- estabilidade com o Hermes.
 
-### F6. Futuro: construir lugares
-Ficam guardados para "crie uma praça", junto com o 3d-asset-server:
-- **PCG Forge:** espalhar objetos numa área.
-- **Blueprint Forge:** criar Blueprints de ator.
+O que as field notes já avisam:
+- **Sequencer:**
+  - `create_level_sequence` sobrescreve sem avisar;
+  - a seção nasce com faixa 0..0;
+  - a duração do ease é em ticks;
+  - `set_camera_cut_binding` está quebrado (o contorno é `CameraBindingID` via `set_properties`);
+  - `get_actor_transform_at_frame` serve para seguir trajetória;
+  - o FK Control Rig exige um passo manual.
+- **Play:** classificadores de permissão do cliente bloqueiam `StartPIE`, e `save_assets` falha depois de PIE.
 
-### F7. VERA externo
-Instalar o VERA sem modificação numa **cópia** do projeto, com o Strata como provedor local.
-- **Regra:** o VERA não conhece a nossa trava. Ou fica num editor separado, ou exige o Hermes em PAUSA.
-- **Uso:** trabalho interativo do Talis. O que funcionar bem lá vira candidato a macro no Director.
+## Blocos 3+: abertos sob demanda (regra arquitetural)
 
-### F8. Esteira de entrada de cada peça
-Toda peça percorre os mesmos passos, sem atalho:
-1. **Ler e fixar** o arquivo e o commit de origem.
-2. **Adaptar ao envelope do Director:**
-   - relatório com `medidas`, `evidencias`, `bloqueio`, `espera`;
-   - erro traduzido para a taxonomia fechada.
-3. **Portões e `dry_run`**, para peças que mudam algo.
-4. **Teste offline** com saídas falsas do editor (padrão `fakes` do VERA mais as nossas fixtures).
-5. **Teste no Unreal real**, com marcação `@cobre`. Um oráculo de cobertura reprova macro sem teste real.
-6. **Paridade** sandbox × v0.0.3.
-7. **Experimento do Hermes** no sandbox com pedidos do banco `pedidos_v0`. A métrica é Pedidos Atendidos, antes e depois.
-8. **Pacote compacto** para o Astra.
-9. **Produção**, só depois da auditoria. **Publicação no GitHub**, só com permissão do Talis.
+    falha do teste vertical → capacidade faltando → qual fonte já resolve → ler o código
+    → adaptar só a peça útil (esteira abaixo) → teste vertical de novo
+
+Mecanismos de segurança que acompanham cada peça que muda a cena (harness/Aethyr):
+- portões em ordem fixa: editor pronto, sem janela modal, sem Play, sem PAUSA, trava minha;
+- `dry_run` (macro que não sabe fazer prévia recusa);
+- contrato de mutação com fotografia do estado e restauração;
+- anel de backup com 5 cópias antes de qualquer save;
+- modo só leitura;
+- resultado grande vira resumo + id;
+- catálogo progressivo para não afogar o Qwen.
+
+### Esteira de entrada de cada peça
+1. Ler e fixar o arquivo e o commit de origem.
+2. Adaptar ao envelope do Director (`medidas`, `evidencias`, `bloqueio`, `espera`) e à taxonomia fechada de erros.
+3. Portões e `dry_run`, se a peça muda algo.
+4. Teste offline (padrão `fakes` do VERA mais as nossas fixtures).
+5. Teste no Unreal real com `@cobre`; o oráculo de cobertura reprova macro sem teste real.
+6. **Regressão seletiva** das áreas da v0.0.2 tocadas.
+7. Teste vertical de novo; a métrica é Pedidos Atendidos.
+8. Fim da v0.0.3: auditoria Astra única da candidata, produção, e GitHub com permissão.
+
+### VERA externo (paralelo, opcional)
+- VERA sem modificação numa **cópia** do projeto, com o Strata, para uso interativo do Talis.
+- Ele não conhece a nossa trava: editor separado, ou Hermes em PAUSA.
 
 ---
 
-## Tudo do VERA, peça por peça
+## Inventário do VERA (o que está disponível, NÃO a ordem de implementação)
 
 ### Entra no Director
 | # | Peça do VERA | Origem | Vira no Director | Fase |

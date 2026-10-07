@@ -1,5 +1,14 @@
 # v0.0.2 — Bloco 5 (validação no Unreal): status ao parar (06/10, ~17:50)
 
+**v0.0.2 CONGELADA em 06/10 (Bloco 0 da v0.0.3)** como "base experimental, validação real incompleta". Ela não será terminada isoladamente: a validação que falta vira dívida, paga por **regressão seletiva** quando a v0.0.3 mexer em cada área, e por inteiro na **auditoria Astra da candidata da v0.0.3**. Não houve auditoria Astra da v0.0.2.
+
+Suíte offline no congelamento: **137/137**. Diário 3, bloco1 8, bloco2 21, caracterização 11, bloco3 16, bloco3b 11, bloco4 8, supervisor 10, sessão 8, bloco5 4. Um ajuste: o cenário de `sv_espera` declarava um prazo de 25 min e era avaliado aos 55 min; depois da regra `corrida_perdida` do bloco 5, isso é corretamente um alarme, então o prazo do cenário passou a 60 min.
+
+Fundações da v0.0.3 ainda **não totalmente provadas**: trava, PAUSA, supervisor, detector e controlador de experimentos. Se uma delas falhar durante a v0.0.3, vira prioridade imediata.
+
+---
+(registro original do Bloco 5)
+
 **Conclusão: NÃO PRONTA PARA AUDITORIA** — o bloco foi interrompido a pedido do Talis antes da suíte final.
 
 ## Feito (resultados em `work/bloco5/*.json`)
@@ -28,8 +37,8 @@
 5. Corrida interrompida ficava como espera eterna → alarme `corrida_perdida` após o prazo declarado.
 Testes permanentes: `src/testes_bloco5.py` (4 casos; o 1º teve a expectativa do tipo de alarme corrigida, ainda não re-executado).
 
-## FALTA (para declarar "pronta para auditoria")
-1. Rodar `testes_bloco5.py` de novo e a **suíte offline completa** depois das correções do bloco 5.
+## Dívida de validação (paga na v0.0.3, seletivamente)
+1. ~~Suíte offline completa depois das correções do bloco 5~~ — feita no congelamento: 137/137.
 2. **Contrato + workflow completos no Unreal** com o código final.
 3. **Paridade** de novo (o código mudou depois da primeira paridade).
 4. Pacote de auditoria compacto (SHAs, diff resumido, resultados) e commit final.
@@ -42,6 +51,6 @@ Testes permanentes: `src/testes_bloco5.py` (4 casos; o 1º teve a expectativa do
 - "Resultado tardio" no transporte não foi reproduzido.
 
 ## Ambientes
-- v0.0.2: `<repo>-v002` (branch v0.0.2; base Bloco 4 `8dc3438`).
+- v0.0.2: `<repo>` (branch v0.0.2; base Bloco 4 `8dc3438`).
 - Sandbox de teste: `<sandbox>-v002` (o sandbox do Hermes não foi tocado).
 - Produção: intacta (hashes conferidos); trava da produção LIBERADA ao parar; cena limpa (sem TESTE_).

@@ -1,10 +1,10 @@
 # unreal-local-director
 
-> **Alpha 0.0.1 — broken, incomplete, far from usable.** Published early so others can see the approach, reproduce the failures and help. Expect rough edges everywhere.
->
-> **v0.0.2 is in progress on `main` (not audited yet)** — see [v0.0.2 below](#v002-in-progress-not-audited). The 0.0.1 snapshot is tagged [`v0.0.1`](../../tree/v0.0.1).
+**Turns human intent into verified actions in Unreal Engine, using a local LLM that, on its own, could not operate the engine reliably.**
 
-**Goal:** let a **local LLM** drive **Unreal Engine 5** from simple, plain-language orders ("make the audience chat quietly", "measure if this character is standing", "film him from the side") and get back **verified results**, so we can produce **reference videos** for video models such as **MiniMax H3** and **LTX 2.5** (blocking, character motion, camera) without paying a frontier model for every click.
+This is not "an AI tool for Unreal". The model is the thin part: it reads a plain-language request and picks from a catalogue of **ready-made, measured movements and macros**. The thick part is everything around it: the tools that **measure** the result (pose, feet, bones, collisions), **refuse** what they cannot do, **restore** the scene, and **notice when the agent is stuck**. The purpose is **reference videos** (blocking, character motion, camera) for video models such as **MiniMax H3** and **LTX 2.5**, without paying a frontier model for every click.
+
+> **v0.0.3, early and not audited.** Published so others can follow the approach and the evidence. The external audit (Codex "Astra") is the work of **v0.0.4**. Earlier snapshots: [`v0.0.1`](../../tree/v0.0.1), [`v0.0.2-wip`](../../tree/v0.0.2-wip).
 
 ### Where this is going (the important part, not built yet)
 
@@ -75,33 +75,46 @@ Frontier models were used to **build and review** this scaffolding, not to run i
 
 ## Status (honest)
 
-Works in our lab, barely:
-- applying a standing loop (idle/talk/gesture) to a character with verified pose and feet;
-- crowd idle loops one actor at a time;
-- evidence frames; clip search and previews.
+Works in our lab, with measurements:
+- standing gestures and talk loops on existing characters, with verified pose and feet (macros, v0.0.1);
+- **chained movements in a Sequencer timeline**: stand up, walk a distance, push a door open and walk through (v0.0.3; see below);
+- an in-editor Python toolset (`DirectorTools`) for what the official MCP cannot do: full actor inventory, bone positions, isolated capture of one actor.
 
-Broken / missing:
-- **no walking, stairs, sitting or standing up** (no locomotion macro yet);
-- Sequencer evaluation in the editor is blocked on our setup;
-- pose by bone transforms needs an in-editor Python toolset (not installed yet);
-- the first measurement in a new process can be unstable; many hard-coded assumptions (Y Bot skeleton, our level layout, Portuguese tool names);
-- measurement is slow (~2,000 Unreal calls for the test suite).
+Missing (and measured as missing): **turning toward a target**, sitting on an existing seat, picking up objects, waiting for another character, stairs. Lighting of the test captures is dark. Distance control is quantized by the walk cycle.
 
-## v0.0.2 (in progress, not audited)
+## v0.0.3: ready-made movements, verified (06/10/2026, not audited)
 
-Theme: **the agent notices it is stuck, knows what to do, and does not waste hours.** Built in 5 blocks; blocks 1–4 are done, block 5 (real Unreal validation) was stopped midway — status **NOT READY FOR AUDIT** ([docs/pt/BLOCO5_STATUS.md](docs/pt/BLOCO5_STATUS.md)).
+**Decision:** the local model does **not invent motion**. It chooses and chains **ready-made movements** whose numbers were **measured** on the clips themselves (`src/unreal_macros/blocos.py`): `andar(distance)`, `levantar()`, `abrir_porta(gap, hinge)`. The `DirectorTools` toolset builds them as a **Level Sequence** (`seq_build`), so the result renders the same way every time and becomes video.
 
-| Block | What it adds | Main code |
+**Vertical test ladder** (from "Marcos stands up" to "Marcos and Afonso sit and drink tea"; [gap map](docs/pt/MAPA_LACUNAS_V.md)):
+
+| Request | Result | What was measured |
 |---|---|---|
-| 1 | Every macro writes a report with an id; attempts are read from disk, not pasted text | `src/unreal_macros/macros.py`, `diario.py` |
-| 2 | Lock with a verifiable owner (pid + process start time); experiment controller (2–3 hypotheses, git worktree per experiment, run limits, guard) | `trava.py`, `experimentos.py` |
-| 3 | Stuck detector (repetition, back-and-forth, same error, stagnation → nudge / replan / other path / escalate / abort); lessons with votes; problem-solving skill | `emperramento.py`, `resolver.py`, `docs/pt/skills/resolver-problemas/SKILL.md` |
-| 4 | Requests bank and capability map; value queue (explore vs regress); supervisor (45 min without measured progress, orphan lock, violations → PAUSE); session hand-off; archive rotation | `direcao.py`, `supervisor.py`, `sessao.py`, `rotacao.py`, `src/supervisor_laco.py` |
-| 5 | Validation in real Unreal: found and fixed 5 bugs that offline tests missed | `tools/bloco5_unreal*.py`, `docs/pt/bloco5_resultados/` |
+| V01 "Marcos stands up" | **5/5** | starts seated, feet never inside the seat, ends standing (hips 94 cm), toes on the floor |
+| V02 "… and goes to the door" | **4/4** | 2 cm hip jump between clips, never crosses the door, stops 54 cm from it (target 60) |
+| V03 "… goes to the door and opens it" | **4/4** | door opens 77°, starts moving when the **right hand** touches it, walks through, no bone inside the walls |
 
-Offline tests (no Unreal needed): `python src/testes_diario.py`, `src/testes_bloco1.py` … `src/testes_bloco5.py`.
+![V03: walk, push the door, walk through](docs/pt/v003_resultados/folha_V03.png)
 
-**Next (plan, nothing implemented):** v0.0.3 brings in pieces of [VERA](https://github.com/ezesubu/VERA) (isolated actor capture, retargeting, scene mood) behind safety rails inspired by [unreal-harness](https://github.com/oliver-io/unreal-harness) and Aethyr (gates, dry-run, rollback, read-only mode, progressive tool disclosure). Full plan: [docs/pt/PLANO_v003_VERA.md](docs/pt/PLANO_v003_VERA.md). Changelog: [CHANGELOG.md](CHANGELOG.md).
+Videos: [walk](docs/videos/andar_sequencer.mp4) · [V01 stand up](docs/videos/V01_levantar.mp4) · [V02 stand up and go to the door](docs/videos/V02_levantar_ir_porta.mp4) · [V03 open the door](docs/videos/V03_abrir_porta.mp4) (test captures: only the listed actors are rendered, dark background).
+
+**The door is pushed by the body, not animated by hand:** in every frame the leaf opens just enough for none of 15 bones to cross it, and never closes back (`blocos.angulos_porta`). That is how we found a real limit: the Mixamo push-door clip throws the left arm wide, so with a 100–120 cm doorway the arm went 10–15 cm into the jamb. The block now carries a **measured precondition** (gap ≥ 150 cm, hinge on the pusher's left) and **refuses** outside it, instead of producing a wrong scene.
+
+**Run by the local model (Hermes on Strata/Qwen3.8-Flash-Next, 06/10 night):** 27 requests from a non-expert, using only the v0.0.1 production tools. Self-reported score, not yet cross-checked against the macro reports: **9 done with measurements, 17 refused with the right reason, 1 failed with a measured cause, 0 stuck**, scene restored exactly. For the refused ones it wrote plans in ready-made movements and listed what is missing; its top gap is **`virar_para` (turn toward a target)**, the silent prerequisite of walking. Raw data: [docs/pt/hermes_v003/](docs/pt/hermes_v003/).
+
+**Also in v0.0.3:**
+- `DirectorTools` (`editor_python/`): installed through `UE_PYTHONPATH`, no change to the game project; it can reload itself.
+- Isolated capture **adapted from [VERA](https://github.com/ezesubu/VERA)** (MIT, credited in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)).
+- Pitfalls of the native UE 5.8 MCP checked live against [ue58-mcp-field-notes](https://github.com/PavelVyny/ue58-mcp-field-notes): the 20-actor cut does not happen on 5.8.3, optional arguments are required, and Sequencer poses need `force_evaluate`.
+
+**Next, v0.0.4:**
+- external audit (Codex "Astra");
+- the gaps Hermes found: turn, sit on an existing seat, pick up, wait for another character;
+- lighting.
+
+## v0.0.2 (frozen: experimental base, real validation incomplete)
+
+Theme: **the agent notices it is stuck, knows what to do, and does not waste hours.** Report ids, lock with a verifiable owner, experiment controller, stuck detector, lessons, requests bank, value queue, supervisor, session hand-off, rotation. Offline suite **137/137**; the real-Unreal validation was stopped midway and is being paid back selectively during v0.0.3 ([status](docs/pt/BLOCO5_STATUS.md), [changelog](CHANGELOG.md)).
 
 ## Requirements (if you want to try anyway)
 
@@ -110,6 +123,7 @@ Offline tests (no Unreal needed): `python src/testes_diario.py`, `src/testes_blo
 - A level with Y Bot–style characters; a Mixamo-style FBX clip library (set `ULD_CLIP_LIBRARY`)
 - `ULD_EVIDENCE_DIR` for captured frames
 - Run the MCP server: `python src/server.py` (stdio), then point your agent (Hermes, or any MCP client) at it.
+- v0.0.3 movements: install `DirectorTools` ([editor_python/LEIA.md](editor_python/LEIA.md)), then `python tools/bloco2_v.py V01|V02|V03`.
 
 ## Contributing
 
@@ -127,4 +141,20 @@ Custom, source-available, **not open source** — see [LICENSE](LICENSE). This p
 
 ### Resumo em português
 
-Alfa inicial (quebrado) de uma camada de **macros verificadas** sobre o MCP oficial do Unreal 5.8, para que um **LLM local** (Hermes + Qwen3.8-Flash-Next no Strata) dirija cenas com ordens simples e receba resultados medidos, com o objetivo de gerar **vídeos de referência para MiniMax H3 e LTX 2.5**. O MCP oficial tem ~593 ferramentas atômicas: poder demais e verificação de menos para um modelo pequeno (15% de chamadas com erro na nossa medição; "pronto" com o boneco deitado, porque a caixa envolvente não acompanha a pose). Usamos como inspiração projetos de agentes para Blender (camadas atômica/macro/workflow, gates medidos) e fizemos a reengenharia para o Unreal, incluindo o "estúdio paralelo" para medir a pose pela silhueta. Andar, escada, sentar e Sequencer ainda não funcionam. **O objetivo final** é dirigir em linguagem natural: "faça X e o personagem faz"; "crie uma praça para X passear com Y" → o agente constrói a praça (assets prontos, piso, bancos, árvores, luz), posiciona os dois, faz os dois andarem sem colidir, enquadra a câmera e grava o vídeo de referência. Essa é a parte futura e mais importante. **Por que Unreal e não Blender:** a ideia é ser intuitivo e evolutivo, não bonito. O que importa é física fácil (gravidade, colisão, objetos que caem ou são empurrados) e interação entre objetos e personagens, que o Unreal já traz pronto. O Blender é mais fácil de controlar por agente e os projetos MCP dele estão mais maduros, mas física e interação lá são difíceis. Documentação de trabalho em `docs/pt/`.
+**O Director transforma intenção humana em ações verificadas no Unreal, usando uma LLM local que, sozinha, não teria capacidade de operar o engine de forma confiável.** Não é uma "ferramenta de IA":
+- **O modelo só escolhe:** entende o pedido e escolhe entre **movimentos prontos e medidos**.
+- **O valor está em volta dele:** medir o resultado, recusar o que não sabe fazer, devolver a cena e perceber quando o agente emperrou.
+
+O objetivo é gerar **vídeos de referência para MiniMax H3 e LTX 2.5**.
+
+**Na v0.0.3:**
+- **Escada vertical** (`docs/pt/MAPA_LACUNAS_V.md`):
+  - "Marcos se levanta" 5/5;
+  - "… e vai até a porta" 4/4;
+  - "… e a abre" 4/4, com a porta empurrada pelo corpo e uma pré-condição medida;
+  - tudo montado no Sequencer, com vídeo.
+- **Hermes (Strata/Qwen) no teste de Pedidos Atendidos:** 9 atendidos, 17 recusados com o motivo certo, 1 falha justificada e 0 emperramentos. Os números são dele e ainda vão ser conferidos.
+
+**A auditoria externa (Codex "Astra") fica para a v0.0.4.**
+
+**Por que Unreal:** física fácil e interação entre personagens e objetos, que o Blender não tem pronta. Documentação de trabalho em `docs/pt/`.

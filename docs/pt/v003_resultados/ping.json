@@ -1,0 +1,24 @@
+{
+ "secao": "ping",
+ "quando": "2026-10-06T18:51:33",
+ "versao_codigo": "762015bb56b4",
+ "resultados": [
+  {
+   "teste": "DirectorTools responde com Python completo",
+   "esperado": "ok + motor 5.8",
+   "observado": [
+    true,
+    "5.8.3-58210709+++UE5+Release-5.8"
+   ],
+   "ok": true,
+   "detalhe": {
+    "toolset": "PythonTypes.DirectorTools_0xC7426CD1",
+    "atores": 86,
+    "motor": "5.8.3-58210709+++UE5+Release-5.8",
+    "mundo": "LAB_Animacao",
+    "ok": true,
+    "python": "3.11.8"
+   }
+  }
+ ]
+}

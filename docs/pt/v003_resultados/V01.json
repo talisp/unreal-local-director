@@ -1,0 +1,76 @@
+{
+ "pedido": "V01",
+ "frente": [
+  0.0,
+  1.0
+ ],
+ "testes": [
+  {
+   "teste": "começa sentado: quadril sobre o assento",
+   "esperado": "3 a 20 cm acima do topo",
+   "observado": 10.0,
+   "ok": true
+  },
+  {
+   "teste": "pés nunca dentro do banco",
+   "esperado": "nenhum",
+   "observado": [],
+   "ok": true
+  },
+  {
+   "teste": "termina de pé",
+   "esperado": "quadril 88 a 105 cm",
+   "observado": 94.2,
+   "ok": true
+  },
+  {
+   "teste": "pés no chão no fim",
+   "esperado": "dedos <= 8 cm",
+   "observado": -1.2,
+   "ok": true
+  },
+  {
+   "teste": "termina à frente do banco",
+   "esperado": ">= 22 cm do centro",
+   "observado": 54.2,
+   "ok": true
+  }
+ ],
+ "sequencia": {
+  "faixas": [
+   {
+    "ate": 68,
+    "avanco_cm": 46.64,
+    "clipe": "Sit_To_Stand_Anim",
+    "de": 0,
+    "inicio_xy": [
+     10000.0,
+     0.0
+    ],
+    "yaw": 0.0
+   }
+  ],
+  "fim_previsto_xy": [
+   10000.0,
+   46.6
+  ],
+  "ok": true,
+  "quadros": 68,
+  "sequencia": "/Game/_AnimLab/Experimentos/SEQ_TESTE_328329699.SEQ_TESTE_328329699"
+ },
+ "banco": {
+  "centro": [
+   9999.9,
+   -7.0
+  ],
+  "topo_z": 41.2
+ },
+ "video": {
+  "arquivo": "<local>",
+  "quadros": 34
+ },
+ "fechar": {
+  "apagou": true,
+  "ok": true
+ }
+}
