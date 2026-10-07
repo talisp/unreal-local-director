@@ -22,4 +22,6 @@ These are **Blender** projects (Python `bpy`). Nothing in them runs in Unreal: w
 ## People and agents
 - **Talis** — project owner, direction, the "parallel studio" measurement idea.
 - **Claude Code** (Anthropic) — implementation, tests, analysis.
-- **Codex "Astra"** (OpenAI) — external code review.
+- **Codex "Astra"** (OpenAI) — external code review and audit.
+- **ChatGPT** (OpenAI) — architecture and planning reviews (Pedidos Atendidos metric, vertical test ladder, v0.0.3 plan v2).
+- **Hermes** on **Strata / Qwen3.8-Flash-Next** — runtime agent and test benches.

@@ -129,9 +129,17 @@ Theme: **the agent notices it is stuck, knows what to do, and does not waste hou
 
 Issues and ideas welcome — especially: locomotion with collision gates, bone-based pose measurement, faster/stable capture, English tool names. A new macro is only accepted with **3/3 positive cases and a negative control that fails** (policy rule 11).
 
-## Credits
+## Contributors
 
-See [NOTICE.md](NOTICE.md). Built by **Talis** (direction, the "parallel studio" idea, lab), with **Claude Code** (implementation) and **Codex "Astra"** (review); runtime agent **Hermes** on **Strata/Qwen**.
+| Who | Role |
+|---|---|
+| **Talis** | project owner, direction, the "parallel studio" idea, lab |
+| **Claude Code** (Anthropic) | implementation, tests, measurement in Unreal |
+| **ChatGPT** (OpenAI) | architecture and planning reviews: the "Pedidos Atendidos" metric, the vertical test ladder, the v0.0.3 plan v2 (freeze v0.0.2, toolset first, gap-driven blocks) |
+| **Codex "Astra"** (OpenAI) | external code review and audit (the v0.0.4 audit) |
+| **Hermes** on **Strata / Qwen3.8-Flash-Next** | the runtime agent: runs the requests and the test benches |
+
+AI contributors do not have GitHub accounts, so they are credited here and in [NOTICE.md](NOTICE.md) rather than in GitHub's contributor graph.
 
 ## License
 
