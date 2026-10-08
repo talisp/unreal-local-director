@@ -3,6 +3,7 @@
 Camada atômica: só este módulo conversa com o Unreal. As macros chamam `call` e `script`.
 """
 import json
+import os
 import threading
 import time
 import urllib.error
@@ -18,6 +19,19 @@ class UnrealError(RuntimeError):
 
 class UnrealPaused(UnrealError):
     """O MCP pausou depois de erros seguidos; espere e tente de novo."""
+
+
+OFFLINE_VAR = "UNREAL_MACROS_OFFLINE"
+
+
+class UnrealOffline(UnrealError):
+    """UNREAL_MACROS_OFFLINE ligado (bateria de quebra, Fase 2a): nenhuma chamada sai para a porta 8001."""
+    codigo = "offline_bloqueado"
+
+
+def offline() -> bool:
+    # Lida a cada chamada (não na importação). Qualquer valor que não seja vazio ou "0" bloqueia: na dúvida, fecha.
+    return os.environ.get(OFFLINE_VAR, "").strip() not in ("", "0")
 
 
 def _parse(body: str):
@@ -36,6 +50,8 @@ class Client:
         self.prazo = None  # epoch: prazo global da macro em andamento (definido pelo envelope da macro)
 
     def _post(self, payload: dict):
+        if offline():  # antes de qualquer socket: com a variável, a 8001 nunca é aberta
+            raise UnrealOffline(f"{UnrealOffline.codigo}: {OFFLINE_VAR} está ligado; nenhuma chamada vai ao Unreal")
         if self.prazo and time.time() > self.prazo:
             raise UnrealError("prazo total da macro esgotado; ESTADO DESCONHECIDO: rode inspecionar_cena antes de repetir")
         h = dict(_HEADERS)

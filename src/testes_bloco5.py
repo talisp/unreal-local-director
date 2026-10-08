@@ -73,4 +73,4 @@ def b5_corrida_perdida():
 
 if __name__ == "__main__":
     B2._montar_sandbox()
-    T4.rodar([b5_espera_trava, b5_degrau_ativo, b5_pausa_espera, b5_corrida_perdida], "bloco5")
+    sys.exit(0 if T4.rodar([b5_espera_trava, b5_degrau_ativo, b5_pausa_espera, b5_corrida_perdida], "bloco5") else 1)

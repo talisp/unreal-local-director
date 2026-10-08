@@ -124,10 +124,11 @@ def rodar(lista, rotulo):
     for nome, ok, msg in resultados:
         print(("OK   " if ok else "FALHA") + " " + nome + (f" | {msg}" if msg else ""))
     print(f"{rotulo}: {sum(ok for _, ok, _ in resultados)}/{len(resultados)}")
+    return bool(resultados) and all(ok for _, ok, _ in resultados)  # 0/0 é falha, não sucesso
 
 
 if __name__ == "__main__":
     B2._montar_sandbox()
     secoes = SECAO_DIRECAO + globals().get("SECAO_SUPERVISOR", []) + globals().get("SECAO_SESSAO", []) + \
         globals().get("SECAO_ROTACAO", []) + globals().get("SECAO_INTEGRACAO", [])
-    rodar(secoes, "bloco4")
+    sys.exit(0 if rodar(secoes, "bloco4") else 1)

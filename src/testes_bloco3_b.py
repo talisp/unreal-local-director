@@ -228,3 +228,4 @@ if __name__ == "__main__":
     for nome, ok, msg in resultados:
         print(("OK   " if ok else "FALHA") + " " + nome + (f" | {msg}" if msg else ""))
     print(f"bloco3b: {sum(ok for _, ok, _ in resultados)}/{len(resultados)}")
+    sys.exit(0 if resultados and all(ok for _, ok, _ in resultados) else 1)  # 0/0 é falha

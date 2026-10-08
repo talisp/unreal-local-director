@@ -82,6 +82,18 @@ Works in our lab, with measurements:
 
 Missing (and measured as missing): **turning toward a target**, sitting on an existing seat, picking up objects, waiting for another character, stairs. Lighting of the test captures is dark. Distance control is quantized by the walk cycle.
 
+## v0.0.4-wip: the LLM proposes, the program measures (08/10/2026, work in progress)
+
+The local model chooses clips and recipes; deterministic, tested code does the measuring, logging and protecting.
+- **Ruler and recipe** (`src/unreal_macros/fila.py`, `receita.py`): criteria for stand up, wave, walk, stop, transitions and duration; per-step trims (`inicio_q`, `corte_fim_q`) and end turn (`turn_fim_deg`).
+- **Single queue executor** (`tools/fila_executor.py`): lock, assembly, measurement, logging with the measurement conditions, cleanup and resume. An external review (Codex, read-only) found 3 holes; all fixed with tests.
+- **Library** (`biblioteca/`): 138 measured clip transitions; the same transition costs the same in any recipe.
+- **Break battery** (`tools/bateria.py`): lint and type check against a baseline, 16 offline suites and Hypothesis properties in a clean worktree (~40 s, all green).
+- **Four work lines, one command each** (`tools/director.py`): idea scouting by the local model, the battery, the big Unreal test (a scene with variations, each with video, the operator picks one) and the external review.
+- **Local dashboard** (`tools/painel.py`): run buttons, live history, score chart, videos, picking a variation, approving ideas; each run ends with a short program-built summary.
+
+**Not proven yet:** the big Unreal test (scene with variations) has not run live; the version is not closed.
+
 ## v0.0.3: ready-made movements, verified (06/10/2026, not audited)
 
 **Decision:** the local model does **not invent motion**. It chooses and chains **ready-made movements** whose numbers were **measured** on the clips themselves (`src/unreal_macros/blocos.py`): `andar(distance)`, `levantar()`, `abrir_porta(gap, hinge)`. The `DirectorTools` toolset builds them as a **Level Sequence** (`seq_build`), so the result renders the same way every time and becomes video.

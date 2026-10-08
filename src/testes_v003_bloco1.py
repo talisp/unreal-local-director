@@ -150,7 +150,7 @@ def rodar(testes, rotulo):
         except Exception as e:  # noqa: BLE001
             print("FALHA", t.nome, "|", type(e).__name__ + ":", e)
     print(f"{rotulo}: {ok}/{len(testes)}")
-    return ok == len(testes)
+    return bool(testes) and ok == len(testes)  # 0/0 é falha, não sucesso
 
 
 if __name__ == "__main__":

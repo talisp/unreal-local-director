@@ -219,7 +219,10 @@ class DirectorTools(unreal.ToolsetDefinition):
 
         Args:
             actor_label: rótulo exato do ator (boneco TESTE_).
-            steps_json: lista JSON de passos {"anim": caminho do AnimSequence, "turn_deg": giro antes do passo (opcional)}.
+            steps_json: lista JSON de passos {"anim": caminho do AnimSequence, "turn_deg": giro antes do passo,
+                "inicio_q": começar o clipe N quadros adiante, "corte_fim_q": cortar N quadros do fim, "turn_fim_deg":
+                giro depois do passo (no último passo, o ator gira no último quadro em volta do quadril)}; só "anim" é
+                obrigatório. Sobra do clipe < 1 quadro é recusada (corte_maior_que_o_clipe).
             dir_x: direção inicial de caminhada no mundo (x), normalizada com dir_y.
             dir_y: direção inicial de caminhada no mundo (y).
             fps: quadros por segundo da sequência.
@@ -266,10 +269,12 @@ class DirectorTools(unreal.ToolsetDefinition):
                   quadril_ini=_v(ini), quadril_fim=_v(fim))
 
     @staticmethod
-    def _avanco(a) -> float:
-        """Avanço do quadril no eixo de frente do clipe (eixo 3 nos Mixamo da biblioteca), extrapolado ao fim."""
+    def _avanco(a, ini: int = 0, corte: int = 0) -> float:
+        """Avanço do quadril no eixo de frente do clipe (eixo 3 nos Mixamo da biblioteca), extrapolado ao fim.
+        ini/corte (Fase 4): só o trecho tocado, do quadro `ini` ao último quadro menos `corte` (quadros do clipe)."""
         quads = int(unreal.AnimationLibrary.get_num_frames(a))
-        z = [_osso_no_quadro(a, "Hips", q).z for q in (0, quads - 1, max(quads - 2, 0))]
+        fim = quads - 1 - corte
+        z = [_osso_no_quadro(a, "Hips", q).z for q in (ini, fim, max(fim - 1, ini))]
         return (z[1] - z[0]) + (z[1] - z[2])
 
     @staticmethod
@@ -282,22 +287,47 @@ class DirectorTools(unreal.ToolsetDefinition):
         n = math.hypot(dir_x, dir_y) or 1.0
         dx, dy = dir_x / n, dir_y / n
         x, y, yaw, quadro, faixas, chaves = base.x, base.y, rot.yaw, 0, [], []
-        for p, a in zip(passos, anims):
+        res = seq.get_tick_resolution()
+        ticks_por_quadro = (res.numerator / res.denominator) / fps
+        for i, (p, a) in enumerate(zip(passos, anims)):
             giro = float(p.get("turn_deg", 0.0))
             if giro:
                 c, s = math.cos(math.radians(giro)), math.sin(math.radians(giro))
                 dx, dy, yaw = dx * c - dy * s, dx * s + dy * c, yaw + giro
-            nq = max(1, round(float(a.get_play_length()) * fps))
+            total = max(1, round(float(a.get_play_length()) * fps))
+            ini, corte = int(p.get("inicio_q", 0) or 0), int(p.get("corte_fim_q", 0) or 0)  # Fase 4
+            nq = total - ini - corte
+            if ini < 0 or corte < 0 or nq < 1:
+                raise ValueError(f"corte_maior_que_o_clipe: {a.get_name()} tem {total} quadros; início {ini}, corte {corte}")
             sec = trilha.add_section()
             sec.set_range(quadro, quadro + nq)
             prm = sec.get_editor_property("params")
             prm.set_editor_property("animation", a)
+            if ini or corte:  # deslocamentos em ticks; a sequência anda em `fps`
+                prm.set_editor_property("start_frame_offset", unreal.FrameNumber(round(ini * ticks_por_quadro)))
+                prm.set_editor_property("end_frame_offset", unreal.FrameNumber(round(corte * ticks_por_quadro)))
             sec.set_editor_property("params", prm)
-            av = DirectorTools._avanco(a)
+            quads = int(unreal.AnimationLibrary.get_num_frames(a))
+            r = (quads - 1) / max(total, 1)  # quadros do clipe por quadro da sequência (1 nos Mixamo a 30 fps)
+            av = DirectorTools._avanco(a, round(ini * r), round(corte * r))
             chaves.append((quadro, x, y, yaw))
-            faixas.append({"clipe": a.get_name(), "de": quadro, "ate": quadro + nq, "avanco_cm": round(av, 2),
-                           "inicio_xy": [round(x, 1), round(y, 1)], "yaw": round(yaw, 1)})
+            faixa = {"clipe": a.get_name(), "de": quadro, "ate": quadro + nq, "avanco_cm": round(av, 2),
+                     "inicio_xy": [round(x, 1), round(y, 1)], "yaw": round(yaw, 1)}
+            if ini or corte:
+                faixa.update(inicio_q=ini, corte_fim_q=corte)
+            faixas.append(faixa)
+            x0, y0 = x, y
             x, y, quadro = x + dx * av, y + dy * av, quadro + nq
+            giro_fim = float(p.get("turn_fim_deg", 0.0))  # Fase 4: gira DEPOIS do passo
+            if giro_fim:
+                faixa["turn_fim_deg"] = giro_fim
+                c, s = math.cos(math.radians(giro_fim)), math.sin(math.radians(giro_fim))
+                if i == len(passos) - 1:
+                    # último passo: o ator gira no último quadro EM VOLTA do quadril (que está a `av` da raiz), sem
+                    # arrastar o corpo para o lado
+                    vx, vy = x - x0, y - y0
+                    chaves.append((quadro - 1, x - (vx * c - vy * s), y - (vx * s + vy * c), yaw + giro_fim))
+                dx, dy, yaw = dx * c - dy * s, dx * s + dy * c, yaw + giro_fim
         trans.set_range(0, quadro)
         canais = trans.get_all_channels()  # 0-2 loc x,y,z; 3-5 rot (roll, pitch, yaw); 6-8 escala
         k = lambda canal, q, v: canal.add_key(unreal.FrameNumber(q), v, 0.0, unreal.MovieSceneTimeUnit.DISPLAY_RATE,

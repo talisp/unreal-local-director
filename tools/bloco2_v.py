@@ -141,6 +141,8 @@ def v02(frente, info, res):
     caixa("TESTE_PORTA", px, py, 0.0, 1.0 if frente[1] else 0.1, 0.1 if frente[1] else 1.0, 2.1)
     andar_cm = porta_dist - 60.0 - 8.0 - lev["avanco_cm"]
     receita = B.compor(lev, B.andar(andar_cm, info))
+    if receita.get("recusa"):
+        raise RuntimeError(f"receita recusada: {receita['recusa']}")
     res["receita"] = {"partes": receita["partes"], "andar_pedido_cm": round(andar_cm, 1), "avanco_previsto": receita["avanco_cm"]}
     s = dt("seq_build", actor_label=ATOR, steps_json=json.dumps(receita["passos"]), dir_x=frente[0], dir_y=frente[1], fps=FPS)
     seq = s["sequencia"]
@@ -194,6 +196,8 @@ def v03(frente, info, res):
     alcance = max(dt("bone_position_in_clip", animation_path=B.caminho("Open_Door_Outwards"), bone_name="RightHand",
                      frame=q)["xyz"][2] for q in range(0, min(40, q_abrir), 4))
     andar = B.andar(porta_dist - alcance, info)
+    if andar.get("recusa"):
+        raise RuntimeError(f"andar recusado: {andar['recusa']}")
     passos = andar["passos"] + [{"anim": B.caminho("Open_Door_Outwards")}]
     res["plano"] = {"alcance_mao_cm": round(alcance, 1), "andar": andar["avanco_cm"], "erro_andar_cm": andar["erro_cm"]}
     s = dt("seq_build", actor_label=ATOR, steps_json=json.dumps(passos), dir_x=f[0], dir_y=f[1], fps=FPS)

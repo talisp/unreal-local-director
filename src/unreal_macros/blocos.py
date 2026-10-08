@@ -4,7 +4,13 @@ com os dados MEDIDOS dos clipes (DirectorTools.clip_info), nunca com números ch
 
 Puro (sem Unreal): `info` é um dicionário {clipe: clip_info}. Ver docs/MAPA_LACUNAS_V.md."""
 
+import math
+
 PASTA = "/Game/_AnimLab/Mixamo"
+
+
+def _recusa(bloco: str, motivos: list, **extra) -> dict:
+    return {"bloco": bloco, "recusa": motivos, "passos": [], "avanco_cm": 0.0, **extra}
 
 
 def caminho(clipe: str) -> str:
@@ -13,7 +19,10 @@ def caminho(clipe: str) -> str:
 
 def andar(distancia_cm: float, info: dict) -> dict:
     """Começar a andar → andar × k → parar, com k escolhido para chegar mais perto da distância pedida.
-    A distância é quantizada pelo ciclo de caminhada: o erro previsto volta em `erro_cm` (o chamador decide)."""
+    A distância é quantizada pelo ciclo de caminhada: o erro previsto volta em `erro_cm` (o chamador decide).
+    Zero, negativo, NaN ou infinito: recusa com o motivo (achados K2–K4 da bateria, 08/10)."""
+    if not math.isfinite(distancia_cm) or distancia_cm <= 0:
+        return _recusa("andar", [f"distância {distancia_cm} cm: precisa ser um número finito maior que zero"])
     ini, ciclo, fim = (info[c]["avanco_cm"] for c in ("Start_Walking", "Walking", "Stop_Walking"))
     k = max(0, round((distancia_cm - ini - fim) / ciclo))
     previsto = ini + k * ciclo + fim
@@ -29,7 +38,10 @@ def levantar(info: dict) -> dict:
 
 
 def compor(*blocos: dict) -> dict:
-    """Encadeia blocos na ordem; o avanço previsto é a soma."""
+    """Encadeia blocos na ordem; o avanço previsto é a soma. Uma parte recusada recusa o todo, com os motivos."""
+    recusas = [m for b in blocos for m in b.get("recusa", [])]
+    if recusas:
+        return _recusa("+".join(b["bloco"] for b in blocos), recusas, partes=[b["bloco"] for b in blocos])
     passos = [p for b in blocos for p in b["passos"]]
     return {"bloco": "+".join(b["bloco"] for b in blocos), "passos": passos,
             "avanco_cm": round(sum(b["avanco_cm"] for b in blocos), 1), "partes": [b["bloco"] for b in blocos]}
@@ -44,7 +56,6 @@ def angulos_porta(quadros_ossos: list, dobradica: tuple, frente: tuple, folha_di
     a porta nunca volta (máximo acumulado). Puro: quadros_ossos = [(quadro, {osso: [x, y, z]})].
     dobradica = (x, y) no plano da porta; frente = sentido em que ela abre; folha_dir = direção da folha fechada
     (da dobradiça para a ponta livre). Devolve [(quadro, graus)] e o osso que empurrou primeiro."""
-    import math
     hx, hy = dobradica
     angulo, saida, primeiro = 0.0, [], None
     for q, ossos in quadros_ossos:
@@ -68,7 +79,6 @@ def angulos_porta(quadros_ossos: list, dobradica: tuple, frente: tuple, folha_di
 
 def folha_em(dobradica: tuple, folha_dir: tuple, frente: tuple, graus: float, largura: float = 100.0) -> tuple:
     """Centro (x, y) e direção da folha aberta em `graus` (gira de folha_dir para frente)."""
-    import math
     t = math.radians(graus)
     dx = folha_dir[0] * math.cos(t) + frente[0] * math.sin(t)
     dy = folha_dir[1] * math.cos(t) + frente[1] * math.sin(t)
@@ -88,11 +98,13 @@ def abrir_porta(info: dict, vao_cm: float, dobradica: str) -> dict:
     """Empurrar a porta e passar. `dobradica` relativa a quem empurra ('esquerda'/'direita')."""
     pc = PRECONDICOES["abrir_porta_empurrando"]
     motivos = []
-    if vao_cm < pc["vao_min_cm"]:
+    if not math.isfinite(vao_cm):  # NaN < 150 é falso e inf >= 150: passavam (K1, bateria 08/10)
+        motivos.append(f"vão {vao_cm} cm não é um número finito")
+    elif vao_cm < pc["vao_min_cm"]:
         motivos.append(f"vão {vao_cm:.0f} cm < {pc['vao_min_cm']} cm exigidos pelo clipe")
     if dobradica != pc["dobradica"]:
         motivos.append(f"dobradiça à {dobradica}; o clipe empurra com a direita e segura com a esquerda")
     if motivos:
-        return {"bloco": "abrir_porta", "recusa": motivos, "passos": [], "avanco_cm": 0.0}
+        return _recusa("abrir_porta", motivos)
     return {"bloco": "abrir_porta", "passos": [{"anim": caminho(pc["clipe"])}],
             "avanco_cm": round(info[pc["clipe"]]["avanco_cm"], 1), "erro_cm": 0.0}

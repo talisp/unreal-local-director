@@ -2,7 +2,7 @@
 
 **v0.0.2 CONGELADA em 06/10 (Bloco 0 da v0.0.3)** como "base experimental, validação real incompleta". Ela não será terminada isoladamente: a validação que falta vira dívida, paga por **regressão seletiva** quando a v0.0.3 mexer em cada área, e por inteiro na **auditoria Astra da candidata da v0.0.3**. Não houve auditoria Astra da v0.0.2.
 
-Suíte offline no congelamento: **137/137**. Diário 3, bloco1 8, bloco2 21, caracterização 11, bloco3 16, bloco3b 11, bloco4 8, supervisor 10, sessão 8, bloco5 4. Um ajuste: o cenário de `sv_espera` declarava um prazo de 25 min e era avaliado aos 55 min; depois da regra `corrida_perdida` do bloco 5, isso é corretamente um alarme, então o prazo do cenário passou a 60 min.
+Suíte offline no congelamento: **137/137** **não verificado** (07/10: as 10 suítes listadas somam 100, não 137; ver `work/harness_E4/quebra_RESULTADO.md`). Diário 3, bloco1 8, bloco2 21, caracterização 11, bloco3 16, bloco3b 11, bloco4 8, supervisor 10, sessão 8, bloco5 4. Um ajuste: o cenário de `sv_espera` declarava um prazo de 25 min e era avaliado aos 55 min; depois da regra `corrida_perdida` do bloco 5, isso é corretamente um alarme, então o prazo do cenário passou a 60 min.
 
 Fundações da v0.0.3 ainda **não totalmente provadas**: trava, PAUSA, supervisor, detector e controlador de experimentos. Se uma delas falhar durante a v0.0.3, vira prioridade imediata.
 

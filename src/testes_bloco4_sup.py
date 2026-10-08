@@ -219,4 +219,4 @@ SECAO_SUPERVISOR = [sv_sem_progresso, sv_progresso, sv_texto, sv_espera, sv_viol
 
 if __name__ == "__main__":
     B2._montar_sandbox()
-    T4.rodar(SECAO_SUPERVISOR, "bloco4-supervisor")
+    sys.exit(0 if T4.rodar(SECAO_SUPERVISOR, "bloco4-supervisor") else 1)

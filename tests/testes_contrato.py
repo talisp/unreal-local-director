@@ -167,3 +167,4 @@ if __name__ == "__main__":
     json.dump(out, open(os.path.join(os.path.dirname(__file__), "..", "work", "testes_contrato.json"), "w", encoding="utf-8"),
               ensure_ascii=False, indent=1)
     print(f"{out['passaram']}/{out['total']} testes ok, {out['log_chamadas']} chamadas ao Unreal")
+    sys.exit(0 if resultados and all(r["passou"] for r in resultados) else 1)

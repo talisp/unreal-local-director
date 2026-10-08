@@ -1,10 +1,21 @@
 # Changelog
 
+## v0.0.4-wip — a LLM propõe; o programa mede, registra e protege (em construção, 08/10)
+Plano: `docs/PLANO_PROXIMA_VERSAO.md` (privado). **Não terminada:** o teste grande no Unreal (cena com variações) está pronto sem o Unreal, mas ainda não rodou ao vivo; falta o fechamento da versão.
+
+- **Bateria de quebra** (`tools/bateria.py`): num worktree do commit, Ruff e basedpyright contra a linha de base (só o que é novo), 16 suítes sem Unreal, propriedades Hypothesis (uma por classe de entrada), conferência da porta 8001, da trava e do `pip freeze`. Último resultado: OK, 16 suítes, 0 avisos novos, ~38 s.
+- **Régua e receita** (`src/unreal_macros/fila.py`, `receita.py`): critérios levantar, acenar, andar, parar, trocas e duração; receita validada e com assinatura; ajustes por passo `inicio_q`, `corte_fim_q` (0 a 120 quadros) e `turn_fim_deg` (±180°), fora da régua.
+- **Executor único da fila** (`tools/fila_executor.py`): trava, montagem, medida, registro com as condições da medida, limpeza e retomada; prazo contado do início da rodada; filho só com autorização de uso único; cena validada no próprio executor (3 achados do Astra, todos corrigidos com teste).
+- **Biblioteca** (`src/unreal_macros/biblioteca.py`, `biblioteca/*.jsonl`): blocos, trocas (138 medidas), fichas e escolhas; a mesma troca custa o mesmo em qualquer receita; consultas expostas no servidor MCP.
+- **Trava** criada de forma atômica; blocos recusam zero, negativo, NaN e infinito.
+- **As 4 linhas de trabalho**, um comando cada (`tools/director.py`): júnior (ideias conferidas e auditadas, `tools/junior.py`), bateria, teste grande no Unreal (cena em `cenas/fila.md`, variações diferentes de verdade com vídeo, escolha do operador, `tools/linha2.py` + vigia) e Astra (revisão só leitura, resposta conferida, `tools/astra.py`).
+- **Painel local** (`tools/painel.py`, `127.0.0.1:8765`) e **rotinas de um clique** (`tools/rotina.py`): botões para rodar as linhas (janela minimizada, sem roubar o foco), histórico ao vivo, gráfico das notas, vídeos, escolha da variação, aprovação de ideias e um resumo curto montado por programa no fim de cada rotina.
+
 ## v0.0.3 — VERA no Director, guiado por testes verticais (em construção)
 Plano: `docs/PLANO_v003_VERA.md`.
 
 ### Bloco 0 — v0.0.2 congelada, não terminada
-- A suíte offline passa 137/137. A dívida de validação real está registrada em `docs/BLOCO5_STATUS.md`. Não houve auditoria Astra da v0.0.2: a auditoria será da candidata da v0.0.3.
+- A suíte offline passa 137/137 **não verificado** (07/10: as 10 suítes listadas somam 100, não 137; ver `work/harness_E4/quebra_RESULTADO.md`). Hoje: 61 de 110 com o editor fechado; 34/34 nas suítes que rodam sem o Unreal. A dívida de validação real está registrada em `docs/BLOCO5_STATUS.md`. Não houve auditoria Astra da v0.0.2: a auditoria será da candidata da v0.0.3.
 
 ### Bloco 1 — porta técnica para o VERA (VALIDADO no Unreal 5.8.3 em 06/10)
 - **DirectorTools**, um toolset Python dentro do editor (`editor_python/`), registrado no MCP oficial via `UE_PYTHONPATH` + `init_unreal.py`, sem escrever no projeto. Ferramentas:

@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Painel do Director</title>
+<style>
+:root {
+  --fundo: #f4f2ee; --cartao: #ffffff; --texto: #1d1d1b; --suave: #6b6862; --linha: #e2ded6;
+  --verde: #1f7a4d; --vermelho: #b3261e; --amarelo: #a86b00; --azul: #2b5fab; --azul-claro: #e8eef8;
+}
+@media (prefers-color-scheme: dark) {
+  :root { --fundo: #161614; --cartao: #22211f; --texto: #ece9e2; --suave: #a29e95; --linha: #36342f;
+          --verde: #4cc38a; --vermelho: #ff7a70; --amarelo: #f0b44c; --azul: #8fb3ff; --azul-claro: #26324a; }
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--fundo); color: var(--texto);
+       font: 15px/1.45 system-ui, "Segoe UI", sans-serif; }
+header { display: flex; align-items: baseline; gap: 12px; flex-wrap: wrap; padding: 18px 20px 6px; }
+header h1 { margin: 0; font-size: 22px; }
+#atualizado { color: var(--suave); font-size: 13px; }
+main { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 14px; padding: 12px 20px 30px; }
+section { background: var(--cartao); border: 1px solid var(--linha); border-radius: 10px; padding: 14px 16px; min-width: 0; }
+section.largo { grid-column: 1 / -1; }
+h2 { margin: 0 0 10px; font-size: 16px; }
+.suave { color: var(--suave); font-size: 13px; }
+.ok { color: var(--verde); } .ruim { color: var(--vermelho); } .meio { color: var(--amarelo); }
+button { font: inherit; font-size: 13px; padding: 4px 10px; border-radius: 6px; cursor: pointer;
+         border: 1px solid var(--linha); background: var(--azul-claro); color: var(--azul); }
+button:hover { filter: brightness(0.95); }
+.botoes { display: flex; gap: 8px; flex-wrap: wrap; }
+button.grande { font-size: 15px; padding: 8px 14px; }
+button:disabled { opacity: 0.55; cursor: default; }
+button.perigo { background: transparent; color: var(--vermelho); border-color: var(--vermelho); }
+ul { margin: 0; padding-left: 18px; }
+li { margin: 3px 0; }
+.lista-hist { list-style: none; padding: 0; max-height: 420px; overflow-y: auto; overflow-x: hidden; overflow-wrap: anywhere; }
+.lista-hist li { display: grid; grid-template-columns: 92px 64px 1fr auto; gap: 8px; align-items: baseline;
+                 border-bottom: 1px solid var(--linha); padding: 4px 0; }
+.etiqueta { font-size: 12px; padding: 1px 6px; border-radius: 4px; background: var(--azul-claro); color: var(--azul);
+            text-align: center; }
+.ideia { border-top: 1px solid var(--linha); padding: 8px 0; }
+.ideia .acoes { display: flex; gap: 6px; margin-top: 4px; align-items: center; }
+.videos { display: flex; gap: 10px; flex-wrap: wrap; }
+.videos figure { margin: 0; flex: 1 1 220px; }
+video { width: 100%; max-height: 360px; border-radius: 6px; background: #000; }
+svg { width: 100%; height: 180px; }
+.falta li { font-weight: 600; }
+@media (max-width: 520px) {
+  header, main { padding-left: 16px; padding-right: 16px; }
+  .lista-hist li { grid-template-columns: 70px 1fr; }
+  .lista-hist li .etiqueta, .lista-hist li button { display: none; }
+}
+</style>
+</head>
+<body>
+<header><h1>Painel do Director</h1><span id="atualizado">carregando…</span></header>
+<main>
+  <section class="largo"><h2>Rodar</h2><div id="rodar" class="botoes"></div>
+    <p class="suave">Cada rotina abre numa janela minimizada (não tira você de onde está digitando). No fim, o resumo abre sozinho e aparece em Resultados.</p></section>
+  <section><h2>O que falta de você</h2><div id="falta"></div></section>
+  <section><h2>Agora</h2><div id="agora"></div></section>
+  <section class="largo"><h2>Teste no Unreal</h2><div id="unreal"></div></section>
+  <section class="largo"><h2>Histórico (ao vivo)</h2><ul class="lista-hist" id="historico"></ul></section>
+  <section><h2>Resultados</h2><div id="resultados"></div></section>
+  <section><h2>Bateria e Astra</h2><div id="bateria"></div></section>
+  <section class="largo"><h2>Ideias do júnior</h2><div id="ideias"></div></section>
+</main>
+<script>
+const TOKEN = "{{TOKEN}}";
+const $ = (id) => document.getElementById(id);
+function el(tag, attrs, ...filhos) {
+  const e = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs || {})) {
+    if (k === "onclick") e.onclick = v; else if (k === "class") e.className = v; else e.setAttribute(k, v);
+  }
+  for (const f of filhos) if (f !== null && f !== undefined) e.append(f.nodeType ? f : String(f));
+  return e;
+}
+async function acao(corpo, confirmar) {
+  if (confirmar && !confirm(confirmar)) return;
+  const r = await fetch("/api/acao", { method: "POST", headers: { "Content-Type": "application/json", "X-Token": TOKEN },
+                                       body: JSON.stringify(corpo) });
+  const d = await r.json().catch(() => ({ ok: false, erro: "sem resposta" }));
+  if (!d.ok) alert("Não deu: " + (d.erro || "?"));
+  carregar();
+}
+const abrir = (arquivo, rotulo) => el("button", { onclick: () => acao({ acao: "abrir", arquivo }) }, rotulo || "abrir");
+const hora = (iso) => iso ? iso.slice(8, 10) + "/" + iso.slice(5, 7) + " " + iso.slice(11, 16) : "";
+const nota = (x) => x === null || x === undefined ? "—" : (Math.round(x * 100) / 100).toString();
+
+function grafico(pontos) {
+  const ns = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(ns, "svg");
+  const val = pontos.filter((p) => p.valida && typeof p.nota === "number");
+  if (!pontos.length) return el("p", { class: "suave" }, "Nenhuma tentativa ainda.");
+  const W = 600, H = 180, m = 26, maxN = Math.max(...pontos.map((p) => p.n), 2),
+        maxY = Math.max(...val.map((p) => p.nota), 1);
+  svg.setAttribute("viewBox", `0 0 ${W} ${H}`);
+  const x = (n) => m + (n - 1) / (maxN - 1) * (W - 2 * m), y = (v) => H - m - v / maxY * (H - 2 * m);
+  const add = (tag, a) => { const e = document.createElementNS(ns, tag); for (const k in a) e.setAttribute(k, a[k]); svg.append(e); return e; };
+  add("line", { x1: m, y1: y(0), x2: W - m, y2: y(0), stroke: "var(--verde)", "stroke-dasharray": "4 4" });
+  add("text", { x: 2, y: y(0) + 4, fill: "var(--verde)", "font-size": 11 }).textContent = "0";
+  add("text", { x: 2, y: y(maxY) + 4, fill: "var(--suave)", "font-size": 11 }).textContent = nota(maxY);
+  if (val.length > 1) add("polyline", { points: val.map((p) => `${x(p.n)},${y(p.nota)}`).join(" "), fill: "none",
+                                        stroke: "var(--azul)", "stroke-width": 1.5 });
+  for (const p of pontos) {
+    if (p.valida && typeof p.nota === "number") {
+      const c = add("circle", { cx: x(p.n), cy: y(p.nota), r: 4, fill: p.nota === 0 ? "var(--verde)" : p.variacao ? "var(--amarelo)" : "var(--azul)" });
+      c.append(Object.assign(document.createElementNS(ns, "title"), { textContent: `tentativa ${p.n}: nota ${nota(p.nota)}` }));
+    } else {
+      const t = add("text", { x: x(p.n) - 4, y: m - 8, fill: "var(--vermelho)", "font-size": 12 });
+      t.textContent = "×";
+    }
+  }
+  add("text", { x: W - m, y: H - 6, fill: "var(--suave)", "font-size": 11, "text-anchor": "end" }).textContent = `tentativa ${maxN}`;
+  return svg;
+}
+
+const BOTOES = [
+  ["junior", "Júnior (ideias, ~15 min)", null],
+  ["bateria", "Bateria (testar o código, ~1 min)", null],
+  ["ensaio", "Unreal: ensaio", "Lançar o ENSAIO no Unreal? Precisa do Unreal e do Hermes abertos."],
+  ["noite", "Unreal: noite", "Lançar a NOITE no Unreal? Vai até a hora da cena. Precisa do Unreal e do Hermes abertos."],
+  ["astra", "Astra (gasta cota)", "Enviar ao Astra? Gasta cota do Codex."],
+];
+function rodar(linha, confirmar) {
+  let pergunta = "";
+  if (linha === "astra") {
+    const p = prompt("Pergunta para o Astra (vazio = revisar o que mudou desde a última revisão):", "");
+    if (p === null) return;
+    pergunta = p;
+  }
+  acao({ acao: "rodar", linha, pergunta }, confirmar);
+}
+let ultimaU = null;
+function desenhar(d) {
+  $("rodar").replaceChildren(...BOTOES.map(([linha, rotulo, conf]) => {
+    const ocupada = d.ocupadas.includes(linha);
+    const b = el("button", { class: "grande", onclick: () => rodar(linha, conf) }, ocupada ? rotulo + " · rodando…" : rotulo);
+    b.disabled = ocupada;
+    return b;
+  }));
+  $("atualizado").textContent = "atualizado " + hora(d.agora) + " · atualiza sozinho a cada 15 s";
+  // o que falta
+  const falta = d.falta_voce.length ? el("ul", { class: "falta" }, ...d.falta_voce.map((f) => el("li", {}, f.texto)))
+                                    : el("p", { class: "ok" }, "Nada agora.");
+  $("falta").replaceChildren(falta);
+  // agora
+  const ag = [];
+  const r = d.rodando;
+  if (r.unreal && d.unreal) ag.push(el("p", {}, el("b", {}, "Unreal: "), `${d.unreal.modo} rodando desde ${hora(d.unreal.inicio)} · ${d.unreal.tentativas} tentativas`));
+  if (r.vigia) ag.push(el("p", { class: "suave" }, `Vigia: ${r.vigia.estado} (${hora(r.vigia.quando)})` + (r.parar_pedido ? " · parada pedida" : "")));
+  if (r.unreal && !r.parar_pedido) ag.push(el("button", { class: "perigo", onclick: () => acao({ acao: "parar_vigia" },
+      "Parar a vigia? O Productor não será relançado quando parar.") }, "parar a vigia"));
+  if (r.junior) {
+    ag.push(el("p", {}, el("b", {}, "Júnior: "), `trabalhando · ${r.junior.acoes} ações`));
+    ag.push(el("ul", { class: "suave" }, ...r.junior.ultimas.map((u) => el("li", {}, u))));
+  }
+  if (!ag.length) ag.push(el("p", { class: "suave" }, "Nada rodando. Para começar, dê dois cliques num atalho."));
+  $("agora").replaceChildren(...ag);
+  // unreal (só redesenha se mudou: senão o vídeo que está tocando volta ao começo)
+  const u = d.unreal, un = [], chaveU = JSON.stringify(u);
+  if (chaveU !== ultimaU) {
+  ultimaU = chaveU;
+  if (!u) un.push(el("p", { class: "suave" }, "Ainda não houve rodada."));
+  else {
+    const fr = u.sucesso ? el("span", { class: "ok" }, `conseguiu (a mesma receita ${u.sucesso.vezes} vezes com nota 0)`)
+             : el("span", { class: u.fechou ? "ruim" : "meio" }, u.fechou ? "não conseguiu" : "ainda sem sucesso");
+    un.push(el("p", {}, el("b", {}, u.rodada), ` · ${u.modo || "rodada antiga"} · ${u.tentativas} tentativas · `, fr));
+    un.push(grafico(u.pontos));
+    un.push(el("p", { class: "suave" }, "Nota de cada tentativa (0 = perfeita). Verde = 0 · amarelo = variação · × = inválida."));
+    if (u.melhor) {
+      un.push(el("p", {}, el("b", {}, `Melhor: tentativa ${u.melhor.n}, nota ${nota(u.melhor.nota)} · `), u.melhor.clipes.join(" → ")));
+      if (u.melhor.video) un.push(el("video", { src: "/video?p=" + encodeURIComponent(u.melhor.video), controls: "", preload: "metadata" }));
+    }
+    if (u.variacoes && u.variacoes.opcoes.length) {
+      un.push(el("h2", {}, `Variações (${u.variacoes.faltam ? "faltam " + u.variacoes.faltam : "prontas"})`
+                 + (u.escolhida !== null && u.escolhida !== undefined ? ` · escolhida: ${u.escolhida}` : "")));
+      un.push(el("div", { class: "videos" }, ...u.variacoes.opcoes.map((o) => el("figure", {},
+        o.video ? el("video", { src: "/video?p=" + encodeURIComponent(o.video), controls: "", preload: "metadata" }) : el("p", { class: "suave" }, "sem vídeo"),
+        el("figcaption", {}, `${o.opcao === "base" ? "base" : "variação"} · tentativa ${o.n} `,
+           el("button", { onclick: () => acao({ acao: "escolher", opcao: o.opcao }, `Escolher a tentativa ${o.n}?`) }, "escolher esta"))))));
+    }
+    const det = el("p", {});
+    for (const x of u.detalhes) det.append(abrir(x, "abrir " + x.split("/").pop()), " ");
+    if (u.tem_videos) det.append(abrir(u.pasta + "/videos", "pasta dos vídeos"));
+    un.push(det);
+  }
+  $("unreal").replaceChildren(...un);
+  }
+  // histórico
+  $("historico").replaceChildren(...(d.historico.length ? d.historico.map((h) => el("li", {},
+    el("span", { class: "suave" }, hora(h.quando)), el("span", { class: "etiqueta" }, h.linha), el("span", {}, h.texto),
+    h.abrir ? abrir(h.abrir) : el("span", {}))) : [el("li", { class: "suave" }, "Nada ainda.")]));
+  // resultados
+  $("resultados").replaceChildren(d.resultados.length ? el("ul", {}, ...d.resultados.map((x) => el("li", {}, abrir(x.abrir, x.nome))))
+                                                      : el("p", { class: "suave" }, "Os resumos de cada rotina aparecem aqui."));
+  // bateria e astra
+  const b = d.bateria, ba = [];
+  if (!b) ba.push(el("p", { class: "meio" }, `Bateria: não rodou no código atual (${d.bateria_commit_atual}).`));
+  else {
+    ba.push(el("p", { class: b.ok ? "ok" : "ruim" }, `Bateria ${b.ok ? "OK" : "FALHOU"} · commit ${b.commit} · ${b.minutos} min`));
+    if (b.falhas.length) ba.push(el("ul", {}, ...b.falhas.map((f) => el("li", { class: "ruim" }, f))));
+  }
+  if (d.astra) ba.push(el("p", {}, `Astra: ${d.astra.nome} · ${d.astra.achados} achado(s) `, abrir(d.astra.arquivo)));
+  else ba.push(el("p", { class: "suave" }, "Astra: nunca chamado."));
+  $("bateria").replaceChildren(...ba);
+  // ideias
+  const id = d.ideias.map((i) => el("div", { class: "ideia" },
+    el("b", {}, `${i.n}. ${i.titulo}`), " ", el("span", { class: "suave" }, `custo ${i.custo || "?"} · ${i.arquivo}`),
+    el("div", {}, el("span", { class: "suave" }, "Problema: "), i.problema),
+    el("div", {}, el("span", { class: "suave" }, "Ideia: "), i.ideia),
+    el("div", { class: "acoes" }, i.decisao ? el("span", { class: i.decisao === "aprovada" ? "ok" : "ruim" }, i.decisao)
+      : el("span", {}, el("button", { onclick: () => acao({ acao: "ideia", arquivo: i.arquivo, n: i.n, decisao: "aprovada" }) }, "aprovar"), " ",
+                       el("button", { class: "perigo", onclick: () => acao({ acao: "ideia", arquivo: i.arquivo, n: i.n, decisao: "recusada" }) }, "recusar")),
+      " ", abrir(i.arquivo, "texto completo"))));
+  $("ideias").replaceChildren(...(id.length ? id : [el("p", { class: "suave" }, "Nenhuma ideia ainda.")]));
+}
+async function carregar() {
+  try { desenhar(await (await fetch("/api/dados")).json()); }
+  catch (e) { $("atualizado").textContent = "sem conexão com o painel (a janela dele foi fechada?)"; }
+}
+carregar();
+setInterval(carregar, 15000);
+</script>
+</body>
+</html>

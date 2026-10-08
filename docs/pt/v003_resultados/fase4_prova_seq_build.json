@@ -1,0 +1,73 @@
+{
+ "provas": {
+  "inicio": {
+   "ok": true,
+   "dif_q0_cm": 0.0,
+   "dif_q5_cm": 0.0
+  },
+  "corte": {
+   "ok": true,
+   "quadros_A": 256,
+   "quadros_B": 226,
+   "dif_ultimo_cm": 0.0
+  },
+  "giro_fim": {
+   "ok": true,
+   "quadril_moveu_cm": 2.88,
+   "giro_deg": 90.0
+  },
+  "cena": {
+   "ok": true,
+   "atores_antes": 86,
+   "atores_depois": 86
+  }
+ },
+ "erros": [],
+ "reload": {
+  "ok": true
+ },
+ "diagnostico_giro": {
+  "A_ultimo": {
+   "Hips": [
+    9999.7,
+    602.0,
+    95.5
+   ]
+  },
+  "C_penultimo": {
+   "Hips": [
+    9999.7,
+    602.0,
+    95.5
+   ]
+  },
+  "C_ultimo": {
+   "Hips": [
+    9998.0,
+    599.7,
+    95.5
+   ]
+  },
+  "faixas_C": [
+   {
+    "ate": 256,
+    "avanco_cm": -0.0,
+    "clipe": "Victory_Anim",
+    "de": 0,
+    "inicio_xy": [
+     10000.0,
+     600.0
+    ],
+    "turn_fim_deg": 90.0,
+    "yaw": 0.0
+   }
+  ]
+ },
+ "apagou": [
+  true,
+  true,
+  true
+ ],
+ "ok": true,
+ "segundos": 108.7
+}

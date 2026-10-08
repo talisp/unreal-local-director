@@ -41,3 +41,7 @@ print(json.dumps(res[-1], ensure_ascii=False))
 limpar()
 json.dump({"quando": dt.datetime.now().isoformat(timespec="minutes"), "resultados": res},
           open(os.path.join(os.path.dirname(__file__), "..", "work", "testes_workflow.json"), "w", encoding="utf-8"), ensure_ascii=False, indent=1)
+# Esperado: plateia ok, controle (só Walking) PARA (ok=False), cartão ok.
+passou = [res[0]["ok"] is True, res[1]["ok"] is False, res[2]["ok"] is True]
+print(f"workflow: {sum(passou)}/{len(passou)}")
+sys.exit(0 if all(passou) else 1)

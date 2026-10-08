@@ -197,4 +197,4 @@ SECAO_INTEGRACAO = [i_longo]
 
 if __name__ == "__main__":
     B2._montar_sandbox()
-    T4.rodar(SECAO_SESSAO + SECAO_ROTACAO + SECAO_INTEGRACAO, "bloco4-sessao")
+    sys.exit(0 if T4.rodar(SECAO_SESSAO + SECAO_ROTACAO + SECAO_INTEGRACAO, "bloco4-sessao") else 1)

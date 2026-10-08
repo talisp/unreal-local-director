@@ -1,5 +1,7 @@
 # Plano v0.0.3 (v2): VERA no Director, guiado por testes verticais
 
+> Documento de **plano** (histórico da v0.0.3). Estado real: [ESTADO_ATUAL.md](ESTADO_ATUAL.md) · decisões: [DECISOES.md](DECISOES.md) · fontes: [FONTES_EXTERNAS.md](FONTES_EXTERNAS.md).
+
 Versão 2 do plano, de 06/10/2026. Junta o plano original do Claude, as revisões do ChatGPT e as correções vindas das field notes do MCP 5.8. Está em execução na branch `v0.0.3`.
 
 ## Objetivo
@@ -25,23 +27,12 @@ Quando a v0.0.3 for para o GitHub (não antes), o README e a descrição do repo
 - **O valor está na camada de verificação:** macros, medidas, portões, trava, detector de emperramento e restauração. O modelo é só a ponte entre o pedido e essa camada.
 
 ## Fontes
-| Fonte | Commit | Papel | Quando entra |
-|---|---|---|---|
-| [VERA](https://github.com/ezesubu/VERA) (MIT, EazyLabs / maVERAick) | `8eeb1e7` | principal doador de código: percepção, animação, retarget, clima, PCG | por lacuna; o inventário abaixo é o cardápio |
-| [unreal-harness](https://github.com/oliver-io/unreal-harness) (MIT, Oliver Carrillo) | `09a6bba` | contratos, portões, `dry_run`, testes reais, captura fixa | envolvendo cada peça que entra |
-| [Aethyr](https://aethyr.gg) (Doug Fessler) | `96bd116` | só ideias: prévia, rollback, backup, só leitura | idem |
-| [ue58-mcp-field-notes](https://github.com/PavelVyny/ue58-mcp-field-notes) (CC BY 4.0, Pavel Vyny) | 2026-10-06 | armadilhas do MCP nativo do 5.8 | já no Bloco 1, como testes e portões |
-| [UnrealCV](https://github.com/unrealcv/unrealcv) (MIT) | `67d466a` | percepção: máscara por objeto, profundidade, fluxo | **gatilho:** captura isolada + ossos + traces não dão a medida (oclusão entre vários personagens, movimento por pixel). Prioridade de estudo, não de instalação: exige toolchain C++ |
-| [UAH](https://github.com/viktordanov/uah) | — | objetivo persistente, orçamentos, anti-loop | gatilho por lacuna (não lido pelo Claude) |
-| [MCPToolBox](https://github.com/YuanBaoSMadLab/MCPToolBox) | — | segundo modelo local, visão auxiliar, pruning | idem |
-| [UnrealSpatialTwin](https://github.com/Musca420/UnrealSpatialTwin) | — | modelo espacial persistente | idem |
-| [GripForge MCP](https://github.com/gripforgeai/mcp) | — | attach, retarget, interação com objetos | idem |
-| [3d-asset-server](https://github.com/arielshad/3d-asset-server) | — | aquisição de assets | idem ("crie uma praça") |
+A tabela de fontes (licença, commit, situação e o que entrou) vive em **[FONTES_EXTERNAS.md](FONTES_EXTERNAS.md)**, a fonte canônica. Este plano guarda o inventário detalhado do VERA e do harness, mais abaixo.
 
 ---
 
 ## Bloco 0: congelar a v0.0.2, não terminá-la (FEITO em 06/10)
-- Suíte offline: 137/137.
+- Suíte offline: 137/137 **não verificado** (07/10: as 10 suítes listadas somam 100, não 137; ver `work/harness_E4/quebra_RESULTADO.md`).
 - Estado e dívida de validação estão em `docs/BLOCO5_STATUS.md`; tag `v0.0.2-congelada`.
 - A v0.0.2 é "base experimental, validação real incompleta". Trava, PAUSA, supervisor, detector e controlador de experimentos são fundações **não totalmente provadas**: se falharem durante a v0.0.3, viram prioridade imediata.
 - **Revalidação:** seletiva quando a v0.0.3 mexer em cada área; integral na auditoria final.

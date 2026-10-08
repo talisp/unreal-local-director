@@ -1,0 +1,8 @@
+# Quebra de linha FIXA dos arquivos cujo hash é a "versão" gravada pelo executor da fila (versoes() em
+# tools/fila_executor.py). Sem isto, o hash muda numa cópia limpa conforme o core.autocrlf (PENDENCIAS, item 11).
+# Pontual de propósito: não renormaliza o resto do repositório.
+src/unreal_macros/fila.py text eol=crlf
+editor_python/director_tools/toolset.py text eol=crlf
+tools/fila_executor.py text eol=lf
+# Atalhos de dois cliques do Talis: o cmd.exe precisa de CRLF
+atalhos/*.bat text eol=crlf

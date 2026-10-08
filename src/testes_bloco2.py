@@ -123,6 +123,100 @@ def t_formato_antigo():
     assert T.estado(p)["estado"] == "morta"
 
 
+LEITOR_DE_CRIACAO = (
+    "import sys, os, json, time; sys.path.insert(0, {aqui!r}); from unreal_macros import trava\n"
+    "vistas = ruins = 0\n"
+    "for i in range({n}):\n"
+    "    p = os.path.join({pasta!r}, 'c%d.trava' % i)\n"
+    "    fim = time.time() + 10\n"
+    "    while not os.path.exists(p) and time.time() < fim:\n"
+    "        pass\n"
+    "    vistas += os.path.exists(p)\n"
+    "    ruins += trava.estado(p)['estado'] == 'corrompida'\n"
+    "print(json.dumps([vistas, ruins]))\n")
+
+
+@caso("criação da trava é atômica: quem lê no instante em que ela aparece nunca a vê vazia (08/10)")
+def t_criacao_atomica():
+    # Outro processo espera cada trava aparecer e a lê na hora. Com o código antigo (criar vazio, depois escrever)
+    # este caso pegava 'corrompida'; é a corrida que deixava 'idade sozinha' e 'dono VIVO' intermitentes.
+    pasta, n = os.path.join(TMP, "criacao"), 500
+    os.makedirs(pasta)
+    leitor = subprocess.Popen([sys.executable, "-c", LEITOR_DE_CRIACAO.format(aqui=AQUI, n=n, pasta=pasta)],
+                              stdout=subprocess.PIPE)
+    time.sleep(1.0)  # o leitor sobe e fica esperando a 1ª trava
+    for i in range(n):
+        T.pegar(os.path.join(pasta, f"c{i}.trava"), "teste")
+        time.sleep(0.005)  # dá tempo ao leitor de já estar esperando a próxima
+    vistas, ruins = json.loads(leitor.communicate(timeout=60)[0])
+    assert vistas == n, f"o leitor só viu {vistas} de {n} travas"
+    assert ruins == 0, f"{ruins} de {n} travas lidas como corrompidas no instante da criação"
+    assert not [x for x in os.listdir(pasta) if x.endswith(".tmp")], "sobrou temporário da criação"
+
+
+class _OpenQueNega:
+    """Substitui o open() do módulo da trava: nega as `falhas` primeiras leituras com PermissionError (errno 13, como o
+    Windows no instante do rename) e depois lê de verdade. falhas=None nega sempre."""
+
+    def __init__(self, falhas):
+        self.falhas, self.chamadas = falhas, 0
+
+    def __call__(self, *a, **k):
+        modo = a[1] if len(a) > 1 else k.get("mode", "r")
+        if any(c in modo for c in "wax+"):  # só a LEITURA é negada; pegar() ainda grava o temporário
+            return open(*a, **k)
+        self.chamadas += 1
+        if self.falhas is None or self.chamadas <= self.falhas:
+            raise PermissionError(13, "Permission denied (simulado)")
+        return open(*a, **k)
+
+    def __enter__(self):
+        setattr(T, "open", self)  # o nome global do módulo esconde o open() embutido
+        return self
+
+    def __exit__(self, *exc):
+        delattr(T, "open")
+
+
+@caso("leitura negada pelo sistema (simulada): passageira é recuperada; persistente vira 'indisponivel' e ninguém assume nem libera")
+def t_leitura_negada():
+    if sys.platform != "win32":
+        return  # as novas tentativas só valem no Windows
+    p, log = os.path.join(TMP, "negada.trava"), os.path.join(TMP, "trava.log")
+    proc = _trava_de(TOMA_E_DORME, p, esperar=False)
+    try:
+        conteudo = open(p, encoding="utf-8").read()
+        assert T.estado(p)["estado"] == "viva"  # leitura válida continua funcionando
+        with _OpenQueNega(2) as f:  # erro passageiro seguido de sucesso
+            st = T.estado(p)
+        assert st["estado"] == "viva" and f.chamadas == 3, (st, f.chamadas)
+        with _OpenQueNega(None) as f:  # acesso negado o tempo todo
+            t0 = time.monotonic()
+            st = T.estado(p)
+            dt_s = time.monotonic() - t0
+            assert st["estado"] == "indisponivel" and st["erro"]["errno"] == 13, st
+            assert dt_s < 0.5 and 2 <= f.chamadas <= 30, (dt_s, f.chamadas)  # orçamento curto e limitado
+            try:
+                T.pegar(p, "teste")
+                raise AssertionError("pegou trava ilegível")
+            except T.TravaOcupada as e:
+                assert e.estado["estado"] == "indisponivel"
+            d = T.liberar_orfa(p, log, corrompida=True)
+            assert not d["liberada"] and d["estado"] == "indisponivel" and d["recusa"], d
+        assert open(p, encoding="utf-8").read() == conteudo, "a trava foi mexida"
+    finally:
+        proc.kill()
+
+
+@caso("JSON inválido continua 'corrompida' na hora, sem novas tentativas")
+def t_json_invalido_sem_espera():
+    p = os.path.join(TMP, "malformada.trava")
+    open(p, "w", encoding="utf-8").write('{"pid": ')
+    with _OpenQueNega(0) as f:
+        st = T.estado(p)
+    assert st["estado"] == "corrompida" and f.chamadas == 1, (st, f.chamadas)
+
+
 @caso("trava CORROMPIDA não é tratada como órfã em silêncio (só com confirmação explícita)")
 def t_corrompida():
     p, log = os.path.join(TMP, "lixo.trava"), os.path.join(TMP, "trava.log")
@@ -343,7 +437,8 @@ def t_eventos():
 
 if __name__ == "__main__":
     _montar_sandbox()
-    for fn in (t_orfa, t_viva, t_idade, t_pid_reusado, t_formato_antigo, t_corrompida, t_iniciar_ok, t_terceira, t_prazo,
+    for fn in (t_orfa, t_viva, t_idade, t_pid_reusado, t_formato_antigo, t_criacao_atomica, t_leitura_negada,
+               t_json_invalido_sem_espera, t_corrompida, t_iniciar_ok, t_terceira, t_prazo,
                t_estouro, t_dependencias, t_hipoteses_insuf, t_duplicada, t_conserto, t_aposta, t_persistencia, t_fechar,
                t_guarda_alterada, t_guarda_script, t_guarda_ambiente, t_eventos):
         fn()
@@ -352,3 +447,4 @@ if __name__ == "__main__":
     print(f"bloco2: {sum(ok for _, ok, _ in resultados)}/{len(resultados)}")
     shutil.rmtree(TMP, ignore_errors=True)
     shutil.rmtree(SB + "-exp", ignore_errors=True)
+    sys.exit(0 if resultados and all(ok for _, ok, _ in resultados) else 1)  # 0/0 é falha

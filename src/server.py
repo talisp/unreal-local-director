@@ -235,5 +235,65 @@ def registrar_tentativa(macro: str, relatorio_id: str = "", relatorio_json: str 
     return json.dumps(res, ensure_ascii=False)
 
 
+# ---------- biblioteca de blocos (Fase 3): só leitura, sem Unreal ----------
+def _biblioteca(fn, *a, condicoes_json: str | None = None) -> str:
+    """Erro vira recusa com motivo, nunca exceção. condicoes_json muda condições da medida (ex. {"escala": 1.2});
+    vazio = as condições em que o executor da fila mede agora."""
+    from unreal_macros import biblioteca as BIB
+    try:
+        k = {}
+        if condicoes_json is not None:
+            c = BIB.condicoes_atuais()
+            if condicoes_json.strip():
+                extra = json.loads(condicoes_json)
+                if not isinstance(extra, dict):
+                    raise ValueError("condicoes_json tem de ser um objeto JSON")
+                c.update(extra)
+            k["condicoes"] = c
+        res = fn(BIB.carregar(), *a, **k)
+    except Exception as e:  # noqa: BLE001
+        res = {"status": "recusado", "motivo": f"{type(e).__name__}: {e}"}
+    return json.dumps(res, ensure_ascii=False)
+
+
+@mcp.tool()
+def listar_blocos(condicoes_json: str = "") -> str:
+    """Blocos prontos da biblioteca: receitas que já deram nota 0 três vezes, com o status nas condições da cena
+    ('validado' ou 'medir_de_novo', com o motivo). Sem Unreal."""
+    from unreal_macros import biblioteca as BIB
+    return _biblioteca(BIB.listar_blocos, condicoes_json=condicoes_json)
+
+
+@mcp.tool()
+def consultar_bloco(bloco: str, condicoes_json: str = "") -> str:
+    """Use antes de reaproveitar um bloco: 'validado' devolve a receita pronta para o executor da fila; fora das
+    condições em que foi medido, devolve 'medir_de_novo' com o motivo e SEM a receita. Sem Unreal."""
+    from unreal_macros import biblioteca as BIB
+    return _biblioteca(BIB.consultar_bloco, bloco, condicoes_json=condicoes_json)
+
+
+@mcp.tool()
+def historico_bloco(bloco: str) -> str:
+    """Tudo o que foi medido de um bloco: receita, tentativas, notas, intenções, trocas, condições e vídeos."""
+    from unreal_macros import biblioteca as BIB
+    return _biblioteca(BIB.historico_bloco, bloco)
+
+
+@mcp.tool()
+def consultar_trocas(clipe_de: str, papel_para: str, condicoes_json: str = "") -> str:
+    """Trocas já medidas que saem de `clipe_de` para um clipe que fez o papel `papel_para` (levantar, acenar, andar,
+    parar, ponte), da melhor para a pior, com o custo por critério. A mesma troca custa o mesmo em qualquer receita
+    (medido em 08/10): use isto antes de gastar uma tentativa no Unreal."""
+    from unreal_macros import biblioteca as BIB
+    return _biblioteca(BIB.consultar_trocas, clipe_de, papel_para, condicoes_json=condicoes_json)
+
+
+@mcp.tool()
+def ficha_clipe(nome: str) -> str:
+    """Ficha de um clipe já usado: quadros, avanço, papéis em que passou ou reprovou, trocas em que entrou e o aceno."""
+    from unreal_macros import biblioteca as BIB
+    return _biblioteca(BIB.ficha_clipe, nome)
+
+
 if __name__ == "__main__":
     mcp.run()

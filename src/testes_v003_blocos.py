@@ -52,5 +52,18 @@ def t_abrir():
     assert "recusa" not in ok and ok["passos"][0]["anim"].endswith("Open_Door_Outwards_Anim"), ok
 
 
+@caso("entradas inválidas são recusadas com motivo, sem exceção (achados K1–K4 da bateria, 08/10)")
+def t_invalidas():
+    info = dict(INFO, Open_Door_Outwards={"avanco_cm": 212.05})
+    for d in (0, -5, float("nan"), float("inf"), float("-inf")):
+        r = B.andar(d, INFO)
+        assert r["recusa"] and r["passos"] == [] and r["avanco_cm"] == 0.0, (d, r)
+    for v in (float("nan"), float("inf")):
+        r = B.abrir_porta(info, v, "esquerda")
+        assert r["recusa"] and r["passos"] == [], (v, r)
+    c = B.compor(B.levantar(INFO), B.andar(-1, INFO))  # uma parte recusada recusa o todo
+    assert c["recusa"] and c["passos"] == [] and c["partes"] == ["levantar", "andar"], c
+
+
 if __name__ == "__main__":
-    sys.exit(0 if rodar([t_andar, t_curto, t_compor, t_porta, t_abrir], "v003-blocos") else 1)
+    sys.exit(0 if rodar([t_andar, t_curto, t_compor, t_porta, t_abrir, t_invalidas], "v003-blocos") else 1)

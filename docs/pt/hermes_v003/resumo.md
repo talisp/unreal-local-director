@@ -1,4 +1,4 @@
-# Bancada Hermes v0.0.3 — resumo (06/10, 22:03 → 23:35)
+# Bancada Hermes v0.0.3 — resumo (06/10, 22:03 → ~23:10; banco completo + 3 fases em ~65 min, dentro do orcamento de ~3 h)
 
 ## Placar (27 pedidos: P01–P20, V01–V07)
 
