@@ -153,6 +153,15 @@ Issues and ideas welcome — especially: locomotion with collision gates, bone-b
 
 AI contributors do not have GitHub accounts, so they are credited here and in [NOTICE.md](NOTICE.md) rather than in GitHub's contributor graph.
 
+## Built on
+
+| Project | What we use |
+|---|---|
+| **[ezesubu/VERA](https://github.com/ezesubu/VERA)** — Virtual Engine Reasoning Agent (MIT, © 2026 EazyLabs / maVERAick) | **code adapted**: isolated actor capture in `editor_python/director_tools/toolset.py` (from `vera/agent/tools/_capture_scripts.py`, commit `8eeb1e7`); license in [third_party/VERA/LICENSE](third_party/VERA/LICENSE) |
+| **[oliver-io/unreal-harness](https://github.com/oliver-io/unreal-harness)** (MIT, © 2026 Oliver Carrillo) | ideas: gates, dry-run, closed error taxonomy, progressive disclosure, real-editor tests |
+
+Details and the exact files: [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and [NOTICE.md](NOTICE.md).
+
 ## License
 
 Custom, source-available, **not open source** — see [LICENSE](LICENSE). This project draws on ideas from other projects and we have not yet cleared what can be fully opened.
