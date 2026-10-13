@@ -1,0 +1,209 @@
+{
+  "status": "CANDIDATA_REPROVADA_NO_GATE_GLOBAL",
+  "versao_etapa": "v0.0.5 U1/U2",
+  "base": "4ea4cd884f050a6c3e20b87c9c4a3302d7784fb5",
+  "codigo_privado": "c1b014794299",
+  "offline": [
+    {
+      "suite": "testes_diario",
+      "ok": true,
+      "casos": "3/3"
+    },
+    {
+      "suite": "testes_bloco2",
+      "ok": true,
+      "casos": "24/24"
+    },
+    {
+      "suite": "testes_v003_bloco1",
+      "ok": true,
+      "casos": "5/5"
+    },
+    {
+      "suite": "testes_v003_blocos",
+      "ok": true,
+      "casos": "6/6"
+    },
+    {
+      "suite": "testes_biblioteca",
+      "ok": false,
+      "casos": "11/14"
+    },
+    {
+      "suite": "testes_fila",
+      "ok": true,
+      "casos": "10/10"
+    },
+    {
+      "suite": "testes_fila_executor",
+      "ok": true,
+      "casos": "6/6"
+    },
+    {
+      "suite": "testes_vigia_dev",
+      "ok": true,
+      "casos": "19/19"
+    },
+    {
+      "suite": "testes_offline",
+      "ok": true,
+      "casos": "4/4"
+    },
+    {
+      "suite": "testes_receita",
+      "ok": true,
+      "casos": "5/5"
+    },
+    {
+      "suite": "testes_ideias",
+      "ok": true,
+      "casos": "4/4"
+    },
+    {
+      "suite": "testes_junior",
+      "ok": true,
+      "casos": "4/4"
+    },
+    {
+      "suite": "testes_astra",
+      "ok": false,
+      "casos": "4/5"
+    },
+    {
+      "suite": "testes_cena",
+      "ok": true,
+      "casos": "10/10"
+    },
+    {
+      "suite": "testes_director",
+      "ok": true,
+      "casos": "2/2"
+    },
+    {
+      "suite": "testes_rotina",
+      "ok": true,
+      "casos": "9/9"
+    },
+    {
+      "suite": "testes_envelope_u1",
+      "ok": true,
+      "casos": "10/10"
+    },
+    {
+      "suite": "testes_bloco3",
+      "ok": true,
+      "casos": "16/16"
+    },
+    {
+      "suite": "testes_bloco4_sup",
+      "ok": true,
+      "casos": "10/10"
+    },
+    {
+      "suite": "testes_bloco5",
+      "ok": true,
+      "casos": "4/4"
+    },
+    {
+      "suite": "testes_processos_u2",
+      "ok": true,
+      "casos": "12/12"
+    }
+  ],
+  "bateria": {
+    "ok": false,
+    "marco_aprovado": false,
+    "propriedades": "13/13",
+    "novos_ruff": 0,
+    "novos_tipos": 0,
+    "conhecidos": []
+  },
+  "runtime": {
+    "servidor": "florentia-macros",
+    "sem_inferencia_llm": true,
+    "independentes_offline": "3/3",
+    "negativo_conexao": "RECUSA_COM_RELATORIO",
+    "unreal": "3/3",
+    "atores_antes": 86,
+    "atores_depois": 86,
+    "cena_identica": true,
+    "trava_final": "livre",
+    "limite": "Servidor novo da configuração de operação; processos residentes não reiniciados"
+  },
+  "publicacao_executada": false,
+  "resumos_finais": {
+    "local": {
+      "ok": false,
+      "marco_aprovado": false,
+      "etapas_passadas": 24,
+      "etapas_total": 26,
+      "suites_passadas": 19,
+      "suites_total": 21,
+      "casos_passados": 178,
+      "casos_total": 182,
+      "falhas": [
+        {
+          "nome": "suite:testes_biblioteca",
+          "ok": false,
+          "novos": 3,
+          "detalhe_curto": "11/14 casos, saiu com 1; FALHA biblioteca commitada (noite de 07/10): 1 bloco (fdb93eafc4a5, t18-t20), 138 trocas, ficha de todo clipe | AssertionError:"
+        },
+        {
+          "nome": "suite:testes_astra",
+          "ok": false,
+          "novos": 1,
+          "detalhe_curto": "4/5 casos, saiu com 1; FALHA pacote: sai de script, igual em duas chamadas, com a pergunta, o commit e as seções; recusa pergunta vazia | AssertionError: ## Mudança desde a "
+        }
+      ],
+      "duracao_s": 117.1
+    },
+    "publico": {
+      "ok": false,
+      "marco_aprovado": false,
+      "etapas_passadas": 21,
+      "etapas_total": 26,
+      "suites_passadas": 17,
+      "suites_total": 21,
+      "casos_passados": 175,
+      "casos_total": 182,
+      "falhas": [
+        {
+          "nome": "basedpyright",
+          "ok": false,
+          "novos": 18,
+          "detalhe_curto": "198 no total (base 229), 18 novos: src/server.py|error|reportCallIssue +14; src/server.py|error|reportMissingImports +3; src/unreal_macros/sandbox_guard.py|error|reportArgumentType +1"
+        },
+        {
+          "nome": "suite:testes_biblioteca",
+          "ok": false,
+          "novos": 4,
+          "detalhe_curto": "10/14 casos, saiu com 1; FALHA biblioteca commitada (noite de 07/10): 1 bloco (fdb93eafc4a5, t18-t20), 138 trocas, ficha de todo clipe | AssertionError:"
+        },
+        {
+          "nome": "suite:testes_ideias",
+          "ok": false,
+          "novos": 1,
+          "detalhe_curto": "3/4 casos, saiu com 1; FALHA ideia repetida de uma pendência aberta é recusada | AssertionError: {'n': 1, 'titulo': 'Prova ao vivo da vigia relançando', 'ok': True, 'motivos"
+        },
+        {
+          "nome": "suite:testes_astra",
+          "ok": false,
+          "novos": 1,
+          "detalhe_curto": "4/5 casos, saiu com 1; FALHA pacote: sai de script, igual em duas chamadas, com a pergunta, o commit e as seções; recusa pergunta vazia | ValueError: arquivo ausente/externo"
+        },
+        {
+          "nome": "suite:testes_rotina",
+          "ok": false,
+          "novos": 1,
+          "detalhe_curto": "8/9 casos, saiu com 1; FALHA atalhos .bat: cada um chama uma rotina que existe, na pasta certa, com quebra de linha do Windows | FileNotFoundError: [WinError 3] O sistema nã"
+        }
+      ],
+      "duracao_s": 115.2
+    }
+  },
+  "publico_limites": [
+    "Tipos: 18 diagnósticos também encontrados no público anterior, mas gate sem mapeamento de origem continua reprovado.",
+    "Biblioteca histórica e contratos legados; documentos privados e atalhos não distribuíveis ausentes.",
+    "Sem aprovação da versão completa ou conversa LLM adicional."
+  ]
+}

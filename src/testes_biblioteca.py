@@ -1,5 +1,5 @@
 """Testes da biblioteca de blocos (Fase 3), SEM Unreal: a importação com dados sintéticos (casos que reprovam) e a
-biblioteca commitada (importada da noite de 07/10)."""
+fixture congelada da noite de 07/10 e invariantes da biblioteca viva."""
 import copy
 import json
 import os
@@ -10,6 +10,8 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from testes_v003_bloco1 import caso, rodar  # noqa: E402
 from unreal_macros import biblioteca as BIB  # noqa: E402
 from unreal_macros import fila as F  # noqa: E402
+
+FIXTURE_NOITE = os.path.join(os.path.dirname(os.path.abspath(__file__)), "fixtures", "biblioteca_noite_0710")
 
 V = {"regua": "r1", "executor": "e1", "toolset": "s1"}
 OSSO = {n: [0.0, 0.0, 100.0] for n in F.OSSOS}
@@ -96,7 +98,7 @@ def t_papel_nao_inventado():
 
 @caso("biblioteca commitada (noite de 07/10): 1 bloco (fdb93eafc4a5, t18-t20), 138 trocas, ficha de todo clipe")
 def t_biblioteca_da_noite():
-    b = BIB.carregar()
+    b = BIB.carregar(FIXTURE_NOITE)
     assert b["cortadas"] == {t: 0 for t in BIB.TIPOS}, b["cortadas"]
     assert list(b["blocos"]) == ["fdb93eafc4a5"], list(b["blocos"])
     bloco = b["blocos"]["fdb93eafc4a5"]
@@ -108,17 +110,19 @@ def t_biblioteca_da_noite():
 
 @caso("B2: as 138 trocas recalculadas dos ossos gravados dão EXATAMENTE as medidas gravadas na noite")
 def t_recalculo_fiel():
-    tr = BIB.carregar()["trocas"]
+    tr = BIB.carregar(FIXTURE_NOITE)["trocas"]
     dif = [t["id"] for t in tr.values() if BIB.medir_troca(t["ossos_antes"], t["ossos_depois"]) != t["medida"]]
     assert len(tr) == 138 and dif == [], dif[:5]
 
 
 @caso("B2: t18-t20 recalculadas dão nota 0; régua mais dura (osso 10 cm) sobe a nota; régua diferente fica marcada")
 def t_recalculo_bloco():
-    b = BIB.carregar()
+    b = BIB.carregar(FIXTURE_NOITE)
     bloco = b["blocos"]["fdb93eafc4a5"]
-    r = BIB.recalcular_bloco(bloco, b["trocas"])
+    # v0.0.6: a régua de agora já não é a de 07/10; "régua igual" passa a ser dita com a régua da própria medida
+    r = BIB.recalcular_bloco(bloco, b["trocas"], regua=bloco["condicoes"]["regua"])
     assert r["notas"] == {18: 0.0, 19: 0.0, 20: 0.0} and not r["regua_diferente"], r["notas"]
+    assert BIB.recalcular_bloco(bloco, b["trocas"])["regua_diferente"]  # com a régua de agora (v0.0.6) fica marcada
     duro = BIB.recalcular_bloco(bloco, b["trocas"], lim=dict(F.LIM, osso_cm=10.0))
     assert all(n > 0 for n in duro["notas"].values()), duro["notas"]  # caso que reprova: a régua mudou o resultado
     outra = BIB.recalcular_bloco(bloco, b["trocas"], regua="outra-regua")
@@ -127,14 +131,34 @@ def t_recalculo_bloco():
 
 @caso("B2: a mesma troca em receitas diferentes dá o mesmo custo (variação de nota 0 nos grupos repetidos)")
 def t_consistencia_trocas():
-    c = BIB.consistencia_trocas(BIB.carregar()["trocas"].values())["resumo"]
+    c = BIB.consistencia_trocas(BIB.carregar(FIXTURE_NOITE)["trocas"].values())["resumo"]
     assert c["grupos_com_repeticao"] >= 10 and c["nota"]["variacao_max"] == 0.0, c
     assert c["quadril_cm"]["variacao_max"] <= 0.05 and c["pior_osso_cm"]["variacao_max"] <= 0.05, c
 
 
-@caso("B3: nas condições de agora o bloco da fila sai 'validado', com receita que o executor aceita sem mudar nada")
+def condicoes_da_medida(b: dict, bloco: str = "fdb93eafc4a5") -> dict:
+    """As condições de AGORA, com a régua em que a fixture de 07/10 foi medida.
+    Até a v0.0.5 a régua (fila.py) não tinha mudado desde 07/10, e "condições de agora" coincidia com "condições da
+    medida". A v0.0.6 corrigiu a régua (L3/L4): o hash mudou e, nas condições de agora, o bloco de 07/10 é
+    'medir de novo' (D25; caso t_regua_nova logo abaixo). Os casos B3/B4 testam a CONSULTA, por isso usam a régua
+    da própria medida; as asserções são as mesmas de antes."""
+    return dict(BIB.condicoes_atuais(), regua=b["blocos"][bloco]["condicoes"]["regua"])
+
+
+@caso("v0.0.6: a régua mudou; nas condições de AGORA o bloco de 07/10 sai 'medir de novo' pela régua, sem a receita")
+def t_regua_nova():
+    b = BIB.carregar(FIXTURE_NOITE)
+    r = BIB.consultar_bloco(b, "fdb93eafc4a5", BIB.condicoes_atuais())
+    assert b["blocos"]["fdb93eafc4a5"]["condicoes"]["regua"] != F.hash_regua(), "a régua de 07/10 não é a de agora"
+    assert r["status"] == "medir_de_novo" and "receita" not in r, r
+    assert len(r["motivos"]) == 1 and r["motivos"][0].startswith("regua"), r["motivos"]  # só a régua difere
+    assert BIB.listar_blocos(b, BIB.condicoes_atuais())["blocos"][0]["status"] == "medir_de_novo"
+
+
+@caso("B3: nas condições da medida o bloco da fila sai 'validado', com receita que o executor aceita sem mudar nada")
 def t_consulta_valida():
-    b, c = BIB.carregar(), BIB.condicoes_atuais()
+    b = BIB.carregar(FIXTURE_NOITE)
+    c = condicoes_da_medida(b)
     r = BIB.consultar_bloco(b, "fdb93eafc4a5", c)
     assert r["status"] == "validado" and r["frase"] == BIB.FRASE_VALIDO, r
     assert F.validar_receita(r["receita"]) == [], F.validar_receita(r["receita"])
@@ -143,7 +167,8 @@ def t_consulta_valida():
 
 @caso("B3: outro esqueleto, outra escala, outro FPS, outra régua ou condição faltando -> 'medir de novo', sem a receita")
 def t_consulta_recusa():
-    b, c = BIB.carregar(), BIB.condicoes_atuais()
+    b = BIB.carregar(FIXTURE_NOITE)
+    c = condicoes_da_medida(b)
     for mudanca, chave in (({"personagem": "/Game/Outro/SK_Outro.SK_Outro"}, "personagem"), ({"escala": 1.1}, "escala"),
                            ({"fps": 24}, "fps"), ({"regua": "outra"}, "regua"),
                            ({"root_motion": "forcado"}, "root_motion")):
@@ -157,7 +182,8 @@ def t_consulta_recusa():
 
 @caso("B3: executor ou toolset diferentes só geram aviso; bloco inexistente é recusado com motivo")
 def t_consulta_avisos():
-    b, c = BIB.carregar(), BIB.condicoes_atuais()
+    b = BIB.carregar(FIXTURE_NOITE)
+    c = condicoes_da_medida(b)
     r = BIB.consultar_bloco(b, "fdb93eafc4a5", dict(c, executor="outro", toolset="outro"))
     assert r["status"] == "validado" and len(r["avisos"]) == 2, r
     r = BIB.consultar_bloco(b, "nao-existe", c)
@@ -166,7 +192,8 @@ def t_consulta_avisos():
 
 @caso("B4: as consultas respondem com os dados da noite e recusam nome ou papel inexistente com motivo")
 def t_consultas():
-    b, c = BIB.carregar(), BIB.condicoes_atuais()
+    b = BIB.carregar(FIXTURE_NOITE)
+    c = condicoes_da_medida(b)
     lb = BIB.listar_blocos(b, c)
     assert lb["total"] == 1 and lb["blocos"][0]["status"] == "validado", lb
     assert BIB.listar_blocos(b, dict(c, escala=2.0))["blocos"][0]["status"] == "medir_de_novo"
@@ -185,12 +212,36 @@ def t_consultas():
     assert BIB.ficha_clipe(b, "Vitory")["status"] == "nao_existe"
 
 
-PY_RUNTIME = r"<repo>\venv\Scripts\python.exe"  # o único com mcp/numpy (servidor)
+@caso("fixture histórica confere com a origem; biblioteca viva mantém medidas e referências sem depender da contagem de 07/10")
+def t_integridade_viva():
+    import hashlib
+    origem = json.load(open(os.path.join(FIXTURE_NOITE, "ORIGEM.json"), encoding="utf-8"))
+    for tipo, meta in origem["arquivos"].items():
+        raw = open(os.path.join(FIXTURE_NOITE, tipo + ".jsonl"), "rb").read()
+        assert hashlib.sha256(raw).hexdigest() == meta["sha256"], tipo
+        assert len(raw.splitlines()) == meta["linhas"], tipo
+    viva = BIB.carregar()
+    assert viva["blocos"] and viva["trocas"] and viva["fichas"]
+    assert viva["cortadas"] == {t: 0 for t in BIB.TIPOS}, viva["cortadas"]
+    for t in viva["trocas"].values():
+        assert BIB.medir_troca(t["ossos_antes"], t["ossos_depois"]) == t["medida"], t["id"]
+        assert t["clipe_a"] in viva["fichas"] and t["clipe_b"] in viva["fichas"], t["id"]
+    for b in viva["blocos"].values():
+        assert {p["clipe"] for p in b["receita"]} <= set(viva["fichas"]), b["id"]
+
+
+_py_repo = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "venv", "Scripts", "python.exe")
+PY_RUNTIME = os.environ.get("ULD_RUNTIME_PYTHON") or (_py_repo if os.path.isfile(_py_repo) else sys.executable)
 
 
 @caso("B4: o servidor florentia-macros registra as 5 consultas e elas devolvem JSON (Python do venv, offline)")
 def t_servidor_registra():
     import subprocess
+    # O status esperado é o que a biblioteca VIVA responde nas condições de agora (calculado aqui, no mesmo processo
+    # do teste): 'validado' enquanto houver bloco medido com a régua atual; 'medir_de_novo' depois de a régua mudar
+    # (v0.0.6) e até o bloco ser medido de novo no Unreal. O que este caso prova é o servidor: registro e JSON.
+    esperado = BIB.consultar_bloco(BIB.carregar(), "fdb93eafc4a5", BIB.condicoes_atuais())["status"]
+    assert esperado in ("validado", "medir_de_novo"), esperado
     codigo = ("import asyncio, json, server as S\n"
               "n = {t.name for t in asyncio.run(S.mcp.list_tools())}\n"
               "q = ('listar_blocos', 'consultar_bloco', 'historico_bloco', 'consultar_trocas', 'ficha_clipe')\n"
@@ -201,11 +252,11 @@ def t_servidor_registra():
                        capture_output=True, timeout=120, env=dict(os.environ, UNREAL_MACROS_OFFLINE="1"))
     assert r.returncode == 0, r.stderr.decode("utf-8", "replace")[-400:]
     out = json.loads(r.stdout.decode("utf-8").strip().splitlines()[-1])
-    assert out == {"faltam": [], "status": "validado"}, out
+    assert out == {"faltam": [], "status": esperado}, out
 
 
 if __name__ == "__main__":
     sys.exit(0 if rodar([t_bloco_so_com_tres, t_regua_diferente_nao_soma, t_linha_cortada, t_idempotente,
                          t_papel_nao_inventado, t_biblioteca_da_noite, t_recalculo_fiel, t_recalculo_bloco,
-                         t_consistencia_trocas, t_consulta_valida, t_consulta_recusa, t_consulta_avisos, t_consultas,
+                         t_consistencia_trocas, t_regua_nova, t_consulta_valida, t_consulta_recusa, t_consulta_avisos, t_consultas, t_integridade_viva,
                          t_servidor_registra], "biblioteca") else 1)

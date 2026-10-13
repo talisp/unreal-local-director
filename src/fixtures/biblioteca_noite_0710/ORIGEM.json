@@ -1,0 +1,18 @@
+{
+  "commit": "4ea4cd884f050a6c3e20b87c9c4a3302d7784fb5",
+  "origem": "biblioteca/*.jsonl, noite 07/10; fixture congelada, nao biblioteca viva",
+  "arquivos": {
+    "blocos": {
+      "sha256": "f73222b110f22f5d700763207f20c2faa092772390586756a218de239d984aed",
+      "linhas": 1
+    },
+    "trocas": {
+      "sha256": "f7e8addaa1beb7eb330767b48d8501754aa284e5d46e4896e45611c3c3c84b5c",
+      "linhas": 138
+    },
+    "fichas": {
+      "sha256": "5ede3d3401d0b0f855830403afd16c590d721b66abd147c2ddece94058731af9",
+      "linhas": 18
+    }
+  }
+}

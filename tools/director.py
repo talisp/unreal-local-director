@@ -19,7 +19,7 @@ RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 PY_FERR = os.path.join(RAIZ, ".venv-ferramentas", "Scripts", "python.exe")
 PY = os.path.join(RAIZ, "venv", "Scripts", "python.exe")
 LINHAS = {"junior": (PY_FERR, "junior.py"), "bateria": (PY_FERR, "bateria.py"), "unreal": (PY, "linha2.py"),
-          "astra": (PY_FERR, "astra.py")}
+          "astra": (PY_FERR, "astra.py"), "noite": (PY, "director_noite.py")}
 
 
 def _git(*a) -> str:

@@ -116,7 +116,7 @@ class DirectorTools(unreal.ToolsetDefinition):
             label_prefix: filtra pelo começo do rótulo (ex. TESTE_); vazio = todos.
 
         Returns:
-            JSON com total e lista de {rotulo, classe, caminho, xyz}.
+            JSON com total e lista de {rotulo, classe, caminho, xyz, rotacao [pitch, yaw, roll], escala}.
         """
         itens = []
         for a in _atores():
@@ -124,7 +124,10 @@ class DirectorTools(unreal.ToolsetDefinition):
             rot = a.get_actor_label()
             if (class_name and classe != class_name) or (label_prefix and not rot.startswith(label_prefix)):
                 continue
-            itens.append({"rotulo": rot, "classe": classe, "caminho": a.get_path_name(), "xyz": _v(a.get_actor_location())})
+            giro = a.get_actor_rotation()
+            itens.append({"rotulo": rot, "classe": classe, "caminho": a.get_path_name(), "xyz": _v(a.get_actor_location()),
+                          "rotacao": [round(giro.pitch, 2), round(giro.yaw, 2), round(giro.roll, 2)],
+                          "escala": _v(a.get_actor_scale3d())})
         return _j(ok=True, total=len(itens), atores=itens)
 
     @toolset_registry.tool_call

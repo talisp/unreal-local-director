@@ -65,6 +65,14 @@ def testa_avaliar_suite():
     e = bateria.avaliar_suite("s", 1, "Traceback ...\nAssertionError: plantado\n")
     assert not e["ok"] and "sem contagem" in e["detalhe_curto"], e
     assert bateria.avaliar_suite("s", 0, "")["ok"] is False
+    # v0.0.6 (L7): suítes em unittest entram no gate; a contagem sai de "Ran N tests" + OK / FAILED (...)
+    e = bateria.avaliar_suite("docs/skills/t", 0, "....\n-----\nRan 4 tests in 0.1s\n\nOK\n")
+    assert e["ok"] and e["nome"] == "suite:t" and "4/4" in e["detalhe_curto"], e
+    e = bateria.avaliar_suite("s", 1, "F.E.\nFAIL: test_x\n-----\nRan 4 tests in 0.1s\n\nFAILED (failures=1, errors=1)\n")
+    assert not e["ok"] and e["novos"] == 2 and "2/4" in e["detalhe_curto"] and "FAIL: test_x" in e["detalhe_curto"], e
+    assert not bateria.avaliar_suite("s", 0, "Ran 0 tests in 0.0s\n\nOK\n")["ok"]  # rodada vazia continua falha
+    assert not bateria.avaliar_suite("s", 0, "Ran 4 tests in 0.1s\n")["ok"]  # sem OK nem FAILED: não passou
+    assert not bateria.avaliar_suite("s", 1, "Ran 4 tests in 0.1s\n\nOK\n")["ok"]  # saída 1 reprova mesmo com OK
 
 
 def _rodar_na_copia(copia: str, saida: str, extra: dict | None = None):
@@ -118,7 +126,7 @@ def testa_aviso_plantado_numa_copia():
         assert "src/plantado_bateria.py|E702" in etapas["ruff"]["detalhe_curto"], etapas["ruff"]
         assert etapas["basedpyright"]["novos"] == 0, etapas["basedpyright"]
         nomes = [e["nome"] for e in r["etapas"]]
-        assert all(f"suite:{s}" in nomes for s in bateria.SUITES), nomes
+        assert all(f"suite:{s.rsplit('/', 1)[-1]}" in nomes for s in bateria.SUITES), nomes  # "/" = fora de src/ (v0.0.6)
         assert "venv_runtime" in nomes and "worktree" not in nomes, nomes  # --pasta não cria worktree
 
         # S3: suíte forçada a falhar (raise no 1º caso do testes_diario), sem o aviso de Ruff

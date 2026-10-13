@@ -24,12 +24,18 @@ BOA = """Olhei a régua e o executor.
 
 @caso("pacote: sai de script, igual em duas chamadas, com a pergunta, o commit e as seções; recusa pergunta vazia")
 def t_pacote():
-    p1 = A.montar_pacote("O pedido da Fase 8 tem furo?", ["docs/PLANO_PROXIMA_VERSAO.md"], resumo_bateria='{"ok": true}')
-    p2 = A.montar_pacote("O pedido da Fase 8 tem furo?", ["docs/PLANO_PROXIMA_VERSAO.md"], resumo_bateria='{"ok": true}')
+    p1 = A.montar_pacote("O pedido da Fase 8 tem furo?", ["src/unreal_macros/fila.py"], resumo_bateria='MARCADOR-CONCLUSAO-ANTERIOR')
+    p2 = A.montar_pacote("O pedido da Fase 8 tem furo?", ["src/unreal_macros/fila.py"], resumo_bateria='MARCADOR-CONCLUSAO-ANTERIOR')
     assert p1 == p2 and len(p1) <= A.PACOTE_MAX + 60
-    for s in ("## A pergunta", "## Commit-base", "## Arquivos que você pode abrir", "## Mudança desde a última revisão",
-              "## Bateria neste commit", "## Números que valem", "## Pendências abertas"):
+    for s in ("## A pergunta", "## Commit-base", "## Arquivos que você pode abrir", "SHA256", "Regras obrigatórias"):
         assert s in p1, s
+    for proibido in ("## Mudança desde a última revisão", "## Bateria neste commit", "## Números que valem",
+                     "## Pendências abertas", "MARCADOR-CONCLUSAO-ANTERIOR"):
+        assert proibido not in p1, proibido
+    import hashlib
+    raw = open(os.path.join(RAIZ, "src", "unreal_macros", "fila.py"), "rb").read()
+    assert hashlib.sha256(raw).hexdigest() in p1
+    assert "O pedido da Fase 8 tem furo?" in p1
     for ruim in (("", []), ("pergunta", ["nao/existe.md"])):
         try:
             A.montar_pacote(*ruim)

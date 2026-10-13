@@ -60,15 +60,11 @@ def _mais_novo(padrao: str, desde: float = 0.0) -> str | None:
     return max(xs, key=os.path.getmtime) if xs else None
 
 
-def _pid_vivo(pid) -> bool:
-    if not pid:
-        return False
-    try:
-        r = subprocess.run(["tasklist", "/FI", f"PID eq {int(pid)}", "/NH"], capture_output=True, text=True, timeout=30,
-                           creationflags=SEM_JANELA)
-    except (OSError, ValueError, subprocess.SubprocessError):
-        return True  # na dúvida, continua esperando (o prazo máximo segura)
-    return str(int(pid)) in r.stdout
+from unreal_macros.processos import DESCONHECIDO, MORTO, VIVO, estado_processo  # noqa: E402  # pyright: ignore[reportMissingImports]
+
+
+def _pid_estado(pid) -> str:
+    return estado_processo(pid)
 
 
 def gravar_resultado(nome: str, texto: str, quando: dt.datetime | None = None, pasta: str = RESULTADOS) -> str:
@@ -227,14 +223,17 @@ def progresso(pasta: str) -> dict:
     return {"tentativas": len(tent), "melhor": min(notas) if notas else None, "sucesso": F.sucesso(tent)}
 
 
-def rodada_acabou(pasta: str, lanc: dict, agora: dt.datetime, prazo: dt.datetime, vivo=_pid_vivo) -> str | None:
+def rodada_acabou(pasta: str, lanc: dict, agora: dt.datetime, prazo: dt.datetime, consultar=None) -> str | None:
     """Por que a rodada acabou (frase), ou None se ainda está rodando."""
     if os.path.exists(os.path.join(pasta, "FECHAMENTO.md")):
         return "o Productor escreveu o fechamento"
     if lanc.get("modo") == "ensaio" and os.path.exists(os.path.join(pasta, "ENSAIO.md")):
         return "o Productor escreveu o relatório do ensaio"
-    if not vivo(lanc.get("vigia_pid")) and not vivo(lanc.get("sessao_pid")):
+    consultar = consultar or _pid_estado
+    vigia, sessao = consultar(lanc.get("vigia_pid")), consultar(lanc.get("sessao_pid"))
+    if vigia == MORTO and sessao == MORTO:
         return "a vigia e o Productor pararam"
+    # VIVO ou DESCONHECIDO: espera até evidência de fim ou prazo, não infere morte.
     if agora >= prazo:
         return "passou do horário-limite"
     return None
@@ -255,6 +254,30 @@ def _nota(x) -> str:
     return "—" if x is None else f"{x:g}"
 
 
+def veredito_ensaio(tent: list) -> tuple:
+    """(ok, frase) do ENSAIO pelo contrato dele (linha2.ensaio_texto): uma tentativa medida e a reprodução dela com a
+    MESMA nota, todas com a cena restaurada. Não exige as 3 notas 0 da noite; e o ENSAIO.md sozinho não prova nada:
+    a evidência são as linhas do executor."""
+    medidas = [t for t in tent if (t.get("avaliacao") or {}).get("valida")
+               and isinstance(t.get("nota"), (int, float)) and not isinstance(t.get("nota"), bool)]
+    if not medidas:
+        return False, "ensaio não cumprido: nenhuma tentativa medida"
+    sem_prova = [t.get("n") for t in tent if t.get("cena_ok") is not True]
+    if sem_prova:
+        return False, f"ensaio não cumprido: cena sem restauração comprovada na(s) tentativa(s) {sem_prova}"
+    por_receita = {}
+    for t in medidas:
+        por_receita.setdefault(t.get("assinatura"), []).append(t["nota"])
+    repetidas = [notas for notas in por_receita.values() if len(notas) >= 2]
+    if not repetidas:
+        return False, "ensaio não cumprido: faltou a reprodução (a mesma receita medida duas vezes)"
+    iguais = [notas for notas in repetidas if max(notas) == min(notas)]
+    if not iguais:
+        return False, f"ensaio não cumprido: a reprodução deu nota diferente ({', '.join(_nota(x) for x in repetidas[0])})"
+    return True, (f"ensaio válido: {len(medidas)} tentativas medidas, reprodução com a mesma nota "
+                  f"({_nota(iguais[0][0])}) e cena restaurada")
+
+
 def md_unreal(pasta: str, lanc: dict, motivo: str | None, variacoes_pedidas: int = 0) -> str:
     tent = ler_tentativas(pasta)
     validas = [t for t in tent if (t.get("avaliacao") or {}).get("valida")]
@@ -263,7 +286,11 @@ def md_unreal(pasta: str, lanc: dict, motivo: str | None, variacoes_pedidas: int
     ev = C.estado_variacoes(validas, variacoes_pedidas) if variacoes_pedidas else None
     precisa = []
     if motivo is None:
-        ok, frase = None, f"ainda rodando: {p['tentativas']} tentativas, melhor nota {_nota(p['melhor'])}"
+        estados = [_pid_estado(lanc.get(k)) for k in ("vigia_pid", "sessao_pid")]
+        situacao = "processo DESCONHECIDO; aguardando confirmação" if DESCONHECIDO in estados else "ainda rodando" if VIVO in estados else "aguardando confirmação do fim"
+        ok, frase = None, f"{situacao}: {p['tentativas']} tentativas, melhor nota {_nota(p['melhor'])}"
+    elif lanc.get("modo") == "ensaio":  # F02: o ensaio tem contrato próprio; não é julgado pelo sucesso da noite
+        ok, frase = veredito_ensaio(tent)
     elif p["sucesso"]:
         ok = True
         frase = f"conseguiu: a mesma receita passou {p['sucesso']['vezes']} vezes com nota 0 ({p['tentativas']} tentativas)"
@@ -307,7 +334,10 @@ def esperar_rodada(pasta: str, lanc: dict, prazo: dt.datetime, espera_s: int = E
     while True:
         motivo = rodada_acabou(pasta, lanc, _agora(), prazo)
         p = progresso(pasta)
+        estados = [_pid_estado(lanc.get(k)) for k in ("vigia_pid", "sessao_pid")]
         linha = f"{p['tentativas']} tentativas · melhor nota {_nota(p['melhor'])}" + (" · SUCESSO" if p["sucesso"] else "")
+        if DESCONHECIDO in estados:
+            linha += " · processo DESCONHECIDO; aguardando confirmação"
         if linha != ultimo:
             print(f"{_agora():%H:%M} · {linha}", flush=True)
             ultimo = linha

@@ -259,6 +259,7 @@ def dados() -> dict:
 BOTOES = ("junior", "bateria", "ensaio", "noite", "astra")
 LIMITE_MIN = {"junior": 60, "bateria": 20, "astra": 30, "ensaio": 150, "noite": 14 * 60}  # 'começou' sem fim, depois disso, deixa rodar de novo
 LANCADOS: dict = {}  # linha -> processo lançado por este painel
+_LANCAR = threading.Lock()  # F05: conferir "está livre?" e lançar é UMA operação (dois cliques juntos = um lançamento)
 
 
 def ocupadas(unreal_rodando: bool, raiz: str = RAIZ, agora: dt.datetime | None = None) -> list:
@@ -281,15 +282,20 @@ def rodar_rotina(linha: str, pergunta: str = "") -> dict:
     import rotina as RO  # pyright: ignore[reportMissingImports]
     if linha not in BOTOES:
         return {"ok": False, "erro": f"rotina desconhecida: {linha}"}
-    u = dados_unreal(rodada_atual())
-    vig = vigia_agora()
-    if linha in ocupadas(bool(u and u.get("modo") and not u.get("fechou") and vig and
-                              vig.get("estado") not in ("terminou", "desistiu", "prazo_encerrado"))):
-        return {"ok": False, "erro": "essa rotina já está rodando"}
     cmd = [os.path.join(RAIZ, "venv", "Scripts", "python.exe"), os.path.join(RAIZ, "tools", "rotina.py"), linha,
            "--sim", "--sem-navegador"] + (["--pergunta", pergunta[:2000]] if linha == "astra" and pergunta else [])
-    # janela própria, minimizada e sem foco: não tira o operador de onde ele digita
-    LANCADOS[linha] = subprocess.Popen(cmd, cwd=RAIZ, creationflags=RO.NOVA_JANELA, startupinfo=RO.janela_minimizada())
+    with _LANCAR:  # a reserva (LANCADOS) só existe se o processo foi criado: erro no lançamento não prende a rotina
+        u = dados_unreal(rodada_atual())
+        vig = vigia_agora()
+        if linha in ocupadas(bool(u and u.get("modo") and not u.get("fechou") and vig and
+                                  vig.get("estado") not in ("terminou", "desistiu", "prazo_encerrado"))):
+            return {"ok": False, "erro": "essa rotina já está rodando"}
+        try:
+            # janela própria, minimizada e sem foco: não tira o operador de onde ele digita
+            LANCADOS[linha] = subprocess.Popen(cmd, cwd=RAIZ, creationflags=RO.NOVA_JANELA,
+                                               startupinfo=RO.janela_minimizada())
+        except OSError as e:
+            return {"ok": False, "erro": f"não consegui lançar a rotina: {e}"}
     return {"ok": True}
 
 

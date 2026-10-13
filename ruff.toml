@@ -1,0 +1,12 @@
+# Checador de erros simples (E5 do harness). Modo básico: só as regras padrão do ruff.
+# Regra do projeto: código NOVO ou ALTERADO sai limpo; os avisos antigos são a linha de base
+# registrada em docs/COMO_DESENVOLVER.md ("Checadores") e não se corrigem em massa.
+# Rodar: .venv-ferramentas\Scripts\ruff.exe check
+target-version = "py311"
+include = ["src/**/*.py", "editor_python/**/*.py"]
+extend-exclude = ["work", "src/_*.py", "third_party", ".venv-ferramentas"]
+
+[lint]
+# Conjunto clássico e mínimo (erros de sintaxe, imports, variáveis). Escrito aqui de propósito: o padrão do
+# ruff 0.16.10 liga 413 regras de estilo e opinião, que não são "modo básico".
+select = ["E4", "E7", "E9", "F"]

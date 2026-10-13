@@ -1,0 +1,10 @@
+{
+  "include": ["src", "editor_python"],
+  "exclude": ["work", "src/_*.py", "third_party", ".venv-ferramentas", "**/__pycache__"],
+  "typeCheckingMode": "basic",
+  "pythonVersion": "3.11",
+  "pythonPlatform": "Windows",
+  "venvPath": ".",
+  "venv": ".venv-ferramentas",
+  "extraPaths": ["work/stubs"]
+}

@@ -75,8 +75,26 @@ def t_repetida():
     texto = BOA.replace("## 1. Medir o salto do pé na troca", "## 1. Prova ao vivo da vigia relançando")
     texto = texto.replace("acrescentar o deslocamento do dedo do pé à nota da troca.",
                           "Prova ao vivo da vigia relançando depois de uma parada no limite de chamadas")
-    r = _conf(texto)
-    assert any("repetida da pendência" in m for m in r["ideias"][0]["motivos"]), r["ideias"][0]
+    # O parser e a conferência reais, com uma pendência controlada; sem importar o backlog privado.
+    import shutil
+    from unittest.mock import patch
+    with tempfile.TemporaryDirectory() as tmp:
+        os.makedirs(os.path.join(tmp, "docs"))
+        os.makedirs(os.path.join(tmp, "src", "unreal_macros"))
+        shutil.copyfile(os.path.join(RAIZ, "src", "unreal_macros", "fila.py"),
+                        os.path.join(tmp, "src", "unreal_macros", "fila.py"))
+        arquivo = os.path.join(tmp, "docs", "PENDENCIAS.md")
+        descricao = "Prova ao vivo da vigia relançando depois de uma parada no limite de chamadas"
+        with open(arquivo, "w", encoding="utf-8") as f:
+            f.write("| 1 | teste | " + descricao + " | aberto |\n")
+        with patch.object(CI, "RAIZ", tmp):
+            r = _conf(texto)
+            assert any("repetida da pendência" in m for m in r["ideias"][0]["motivos"]), r["ideias"][0]
+            # Controle: pendência resolvida deixa de bloquear, sem mudar similaridade.
+            with open(arquivo, "w", encoding="utf-8") as f:
+                f.write("| 1 | teste | ~~" + descricao + "~~ | resolvido |\n")
+            resolvida = _conf(texto)
+            assert resolvida["ok"], resolvida
 
 
 if __name__ == "__main__":

@@ -4,7 +4,7 @@
 
 This is not "an AI tool for Unreal". The model is the thin part: it reads a plain-language request and picks from a catalogue of **ready-made, measured movements and macros**. The thick part is everything around it: the tools that **measure** the result (pose, feet, bones, collisions), **refuse** what they cannot do, **restore** the scene, and **notice when the agent is stuck**. The purpose is **reference videos** (blocking, character motion, camera) for video models such as **MiniMax H3** and **LTX 2.5**, without paying a frontier model for every click.
 
-> **v0.0.3, early and not audited.** Published so others can follow the approach and the evidence. The external audit (Codex "Astra") is the work of **v0.0.4**. Earlier snapshots: [`v0.0.1`](../../tree/v0.0.1), [`v0.0.2-wip`](../../tree/v0.0.2-wip).
+> **v0.0.6, early: a corrective version.** An external read-only audit (Codex "Astra", 10/10/2026) found 29 problems in the executor, the ruler and the night-campaign code; v0.0.6 fixes them, each with a test that fails on the previous code. The fixes themselves have not been re-audited. Published so others can follow the approach and the evidence. Earlier snapshots: [`v0.0.1`](../../tree/v0.0.1), [`v0.0.2-wip`](../../tree/v0.0.2-wip), [`v0.0.3`](../../tree/v0.0.3), [`v0.0.4-wip`](../../tree/v0.0.4-wip).
 
 ### Where this is going (the important part, not built yet)
 
@@ -78,9 +78,36 @@ Frontier models were used to **build and review** this scaffolding, not to run i
 Works in our lab, with measurements:
 - standing gestures and talk loops on existing characters, with verified pose and feet (macros, v0.0.1);
 - **chained movements in a Sequencer timeline**: stand up, walk a distance, push a door open and walk through (v0.0.3; see below);
-- an in-editor Python toolset (`DirectorTools`) for what the official MCP cannot do: full actor inventory, bone positions, isolated capture of one actor.
+- an in-editor Python toolset (`DirectorTools`) for what the official MCP cannot do: full actor inventory, bone positions, isolated capture of one actor;
+- **a night of attempts by the local model that leaves the scene as it found it** (v0.0.6; see below): 28 real attempts in 7 hours, scene restored after every one, no program failure.
 
-Missing (and measured as missing): **turning toward a target**, sitting on an existing seat, picking up objects, waiting for another character, stairs. Lighting of the test captures is dark. Distance control is quantized by the walk cycle.
+Missing (and measured as missing): **turning toward a target**, sitting on an existing seat, picking up objects, waiting for another character, stairs. Lighting of the test captures is dark. Distance control is quantized by the walk cycle. The local model still does not carry a whole night to the deadline on its own (it closed the campaign early), and nothing here has been tried on a second character mesh.
+
+## v0.0.6: corrective version (13/10/2026)
+
+No new features for the scene. This version makes the night campaign **safe and honest**: what the executor deletes, how attempts are reserved, what counts as success, how the ruler measures, how the supervisor ends a night, and what evidence stays on disk. It answers the 29 findings of the external audit of 10/10 plus the items inherited from v0.0.5, in 7 batches. Every fix has a test that reproduces the defect on the previous code and passes after.
+
+| Batch | What changed | New tests (all pass now; most were red on the previous code) |
+|---|---|---|
+| Scene | the executor only deletes what is provably its own (a name prefix is not proof); the scene check compares path, label, class, position, rotation and scale; cleanup only counts with a positive confirmation; before/after inventories kept | 12 (11 red before) |
+| Reservations and lock | one admission at a time per round; a lost state file never becomes a new round; the lock is only released by the process that took it | 24 |
+| Success | "passed" means measured, nothing failed afterwards and the scene restored; one single rule decides success (3 distinct attempts, same conditions and versions) | 13 |
+| Ruler | **no limit or quota changed**; non-finite coordinates invalidate the measurement; transitions are judged on full values, not rounded ones; a foot that starts in the air is not a lift-off | 16 |
+| Supervision | the watcher only accepts the ending of its own campaign; dry-run writes nothing; an orphan lock is released only when proven orphan | 17 |
+| Evidence | samples of every attempt on disk; a corrupted history blocks but does not vanish from the report; a video only exists complete | 15 |
+| Gate | 12 suites that were outside the battery are now in it | — |
+
+**Measured:**
+- **Battery** (`tools/bateria.py`): 34 offline suites, 420 cases, 13 Hypothesis properties, no new lint or type errors, all green.
+- **One real attempt in Unreal 5.8.3** (11/10): score 0, approved; scene identical before and after (**86 → 86 actors**, compared on path, label, class, position, rotation and scale); the 4 cleanup steps confirmed; lock free at the end.
+- **First real night** (11→12/10, the local model driving, 7 h 04 min): **28 attempts, scene restored in 28, 0 program failures**; 11 approved with score 0, 17 rejected by the ruler. The model closed the campaign 25 minutes before the deadline, declaring there was nothing left to try.
+- **Library** (`biblioteca/`): 173 → 423 measured clip transitions. The ruler changed version, so the one validated block answers "measure again" until it gets 3 new approved attempts.
+
+**Added on 13/10, after that night: "test the version" mode.** The list of what the version changed and can be exercised live lives next to the code (`tools/testes_da_versao.json`, 6 tests today). The **program**, not the model, checks the campaign records to say what was covered, and refuses to close a campaign as "exhausted" while a test is missing. 16 offline tests (13 red on the previous code). **This mode has not run live yet.**
+
+**Also first published here (written during v0.0.5):** the night-campaign layer (`tools/director_noite.py`, `src/unreal_macros/campanha.py`), macros that work without a connection, and a process check that tells alive / dead / unknown apart. v0.0.5 was never published on its own; its aggregate results are in [docs/pt/v005_resultados/](docs/pt/v005_resultados/).
+
+**Not proven:** long autonomy of the local model; the test-the-version mode running live; a real video made with this version; other character meshes. Aggregate numbers: [docs/pt/v006_resultados/](docs/pt/v006_resultados/); full list of changes: [CHANGELOG.md](CHANGELOG.md).
 
 ## v0.0.4-wip: the LLM proposes, the program measures (08/10/2026, work in progress)
 
@@ -148,8 +175,8 @@ Issues and ideas welcome — especially: locomotion with collision gates, bone-b
 | **Talis** | project owner, direction, the "parallel studio" idea, lab |
 | **Claude Code** (Anthropic) | implementation, tests, measurement in Unreal |
 | **ChatGPT** (OpenAI) | architecture and planning reviews: the "Pedidos Atendidos" metric, the vertical test ladder, the v0.0.3 plan v2 (freeze v0.0.2, toolset first, gap-driven blocks) |
-| **Codex "Astra"** (OpenAI) | external code review and audit (the v0.0.4 audit) |
-| **Hermes** on **Strata / Qwen3.8-Flash-Next** | the runtime agent: runs the requests and the test benches |
+| **Codex "Astra"** (OpenAI) | external code review and audit: the v0.0.4 review and the audit of 10/10/2026 (29 findings) that v0.0.6 answers |
+| **Hermes** on **Strata / Qwen3.8-Flash-Next** | the runtime agent: runs the requests, the test benches and the night campaigns; as "junior" it also scouts the code for problems (three of its findings, N1, N3 and N4, were fixed in v0.0.6) |
 
 AI contributors do not have GitHub accounts, so they are credited here and in [NOTICE.md](NOTICE.md) rather than in GitHub's contributor graph.
 
@@ -184,6 +211,10 @@ O objetivo é gerar **vídeos de referência para MiniMax H3 e LTX 2.5**.
   - tudo montado no Sequencer, com vídeo.
 - **Hermes (Strata/Qwen) no teste de Pedidos Atendidos:** 9 atendidos, 17 recusados com o motivo certo, 1 falha justificada e 0 emperramentos. Os números são dele e ainda vão ser conferidos.
 
-**A auditoria externa (Codex "Astra") fica para a v0.0.4.**
+**Na v0.0.6 (corretiva, 13/10/2026):**
+- corrige os 29 apontamentos da auditoria externa (Codex "Astra") de 10/10, cada um com um teste que falha no código anterior;
+- bateria: 34 suítes, 420 casos, tudo verde;
+- primeira noite real com o modelo local: 28 tentativas, cena restaurada nas 28, nenhuma falha do programa, 11 aprovadas com nota 0;
+- o modelo fechou a noite 25 minutos antes do prazo; por isso entrou o modo "testar a versão", que **ainda não rodou ao vivo**.
 
 **Por que Unreal:** física fácil e interação entre personagens e objetos, que o Blender não tem pronta. Documentação de trabalho em `docs/pt/`.

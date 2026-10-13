@@ -98,20 +98,31 @@ def macro(fn):
     """Envolve a função no relatório padrão (tempo, nº de chamadas, erro vira bloqueio)."""
     @functools.wraps(fn)
     def wrapper(*args, contexto=None, **kwargs):
-        c = cliente()
-        n0, t0 = len(c.log), time.time()
-        rel = {"macro": fn.__name__, "ok": False, "medidas": {}, "evidencias": [], "avisos": [], "ambiente": _ambiente(),
-               "bloqueio": None, "contexto": contexto or {},
-               "chamada": {"args": _serializavel(list(args)), "kwargs": _serializavel(kwargs)}}  # alvo (v0.0.2 b3)
+        c = None
+        n0, t0 = 0, time.time()
+        rel = {"macro": fn.__name__, "ok": False, "medidas": {}, "evidencias": [], "avisos": [], "ambiente": {},
+               "bloqueio": None, "contexto": {}, "chamada": {"args": [], "kwargs": {}}}
         externo = _pilha["n"] == 0
+        gerencia_unreal = False
         _pilha["n"] += 1
         try:
-            if externo and getattr(fn, "_usa_unreal", True):
+            c = _cliente  # só observa o cliente já existente; nunca conecta uma macro independente
+            n0 = len(c.log) if c is not None else 0
+            rel["ambiente"] = _ambiente()
+            rel["contexto"] = _serializavel(contexto or {})
+            rel["chamada"] = {"args": _serializavel(list(args)), "kwargs": _serializavel(kwargs)}
+            usa_unreal = getattr(fn, "_usa_unreal", True)
+            if usa_unreal and not _pilha["trava"]:
                 pausa = pausa_ativa()
                 if pausa:
                     raise PausaAtiva(f"PAUSADO pelo supervisor: {pausa.get('motivo')} — só o operador libera")
                 _pegar_trava(fn.__name__)
                 _pilha["trava"] = True
+                gerencia_unreal = True
+            if usa_unreal:
+                c = cliente()
+                n0 = len(c.log)
+            if gerencia_unreal and c is not None:
                 c.prazo = time.time() + PRAZO_MACRO_S
                 if c.call(APP, "IsPIERunning"):  # com Play ativo o editor recusa criar/apagar atores (06/10)
                     raise RuntimeError("o Unreal está em modo Play (PIE): peça ao operador para parar o Play; nada foi feito")
@@ -136,9 +147,10 @@ def macro(fn):
                 rel["espera"] = {"tipo": "pausa", "motivo": str(e)}
         finally:
             _pilha["n"] -= 1
-            if externo:
-                c.prazo = None
-                if _pilha["cam"]:  # devolve a câmera do viewport ao lugar (A10)
+            if gerencia_unreal:
+                if c is not None:
+                    c.prazo = None
+                if _pilha["cam"] and c is not None:  # devolve a câmera do viewport ao lugar (A10)
                     try:
                         cam = _pilha["cam"]
                         c.call(APP, "SetCameraTransform", transform={"location": cam["location"], "rotation": cam["rotation"]})
@@ -148,7 +160,9 @@ def macro(fn):
                 if _pilha["trava"]:
                     _soltar_trava()
                     _pilha["trava"] = False
-        rel["chamadas"] = len(c.log) - n0
+        if c is None:
+            c = _cliente  # cliente criado por uma dependente aninhada: inclui suas chamadas
+        rel["chamadas"] = len(c.log) - n0 if c is not None else 0
         rel["segundos"] = round(time.time() - t0, 1)
         rel["quando_ts"] = round(time.time(), 3)  # bloco 5: ordem fina entre fontes (o id só tem segundos)
         if externo:

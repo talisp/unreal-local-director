@@ -76,7 +76,7 @@ def t_resumos():
 
 @caso("fim da rodada: fechamento, ENSAIO.md só no ensaio, vigia e Productor mortos, prazo; senão continua")
 def t_acabou():
-    vivo, morto = (lambda pid: True), (lambda pid: False)
+    vivo, morto = (lambda pid: "VIVO"), (lambda pid: "MORTO")
     agora, prazo = dt.datetime(2026, 10, 9, 3, 0), dt.datetime(2026, 10, 9, 8, 30)
     d = _rodada([_t(1, 5.0)])
     assert RO.rodada_acabou(d, {"modo": "noite"}, agora, prazo, vivo) is None
@@ -104,7 +104,8 @@ def t_md_unreal():
     assert "❌ não conseguiu" in m2 and "melhor nota 3.25" in m2 and "chamar o Claude" in m2, m2
     m3 = RO.md_unreal(_rodada([_t(1, 2.0)]), {"modo": "ensaio"}, "o Productor escreveu o relatório do ensaio", 3)
     assert "lançar a noite" in m3, m3
-    assert "⚠️ ainda rodando" in RO.md_unreal(_rodada([_t(1, 2.0)]), {"modo": "noite"}, None, 3)
+    assert "⚠️ ainda rodando" in RO.md_unreal(_rodada([_t(1, 2.0)]),
+                                             {"modo": "noite", "vigia_pid": os.getpid(), "sessao_pid": os.getpid()}, None, 3)
 
 
 @caso("histórico e resultado: a linha entra no historico.jsonl; o .md tem data e nome; o painel junta as fontes")
@@ -197,7 +198,9 @@ def t_atalhos():
         bruto = open(os.path.join(pasta, b), "rb").read()
         assert b"\r\n" in bruto and b"\n" not in bruto.replace(b"\r\n", b""), f"{b}: quebra de linha"
         texto = bruto.decode("ascii")
-        pasta_cd = texto.split('cd /d "', 1)[1].split('"', 1)[0]  # a pasta fixa de instalação (não a da bateria)
+        pasta_cd = texto.split('cd /d "', 1)[1].split('"', 1)[0]
+        if pasta_cd == "%~dp0..":  # exportação portátil; mesma pasta de ferramentas
+            pasta_cd = os.path.abspath(os.path.join(pasta, ".."))
         assert os.path.exists(os.path.join(pasta_cd, "tools", "rotina.py")), (b, pasta_cd)
         cmd = texto.split("tools\\rotina.py ", 1)[1].split()[0]
         assert cmd in RO.ROTINAS, (b, cmd)

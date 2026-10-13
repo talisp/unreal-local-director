@@ -1,35 +1,30 @@
-# L3: o Astra (Codex) como auditor pontual
+# L3: Astra como auditor pontual — contrato 0.2.0
 
-> Linha 3 do [PLANO_PROXIMA_VERSAO.md](../PLANO_PROXIMA_VERSAO.md), Fase 7. **Cada chamada gasta cota: só com o "sim" do Talis.**
-> **Quando chamar** (só nestes 4 momentos):
-> 1. antes de uma rodada de noite nova;
-> 2. antes de publicar;
-> 3. depois de uma versão grande;
-> 4. quando alguém trava 2 vezes no mesmo problema.
+Cada envio gasta cota e exige “sim” específico do Talis. Manutenção/testes offline não autorizam inferência. Momentos históricos: antes de rodada nova, antes de publicar, depois de versão grande ou travamento técnico persistente. Não é chamada automática.
 
-**Como chamar:** `tools/astra.py`.
-- Sem `--enviar`, só monta e mostra o pacote (não gasta nada).
-- Com `--enviar --confirmo-cota`, chama pelo `hermes-dev`, que roda o Codex CLI em modo **só leitura** e grava a resposta.
+## Duas fases
+A: auditoria sem resultados/conclusões Qwen. Organizador seleciona código/contratos, lê regras superiores e declara seleção informada. tools/astra.py prepara snapshot fora da árvore do repositório, TALIS íntegro e AGENTS neutro. Não enviar HANDOFF/REGISTRO/pendências/AGENTS originais que revelem achados. Não descumprir ordens superiores para conseguir independência; conflito de contrato é bloqueio documentado. Contexto global da CLI e leitura fora da lista continuam limites a conferir, não sandbox garantido.
+B: somente após parecer A salvo e congelado, cruzar evidências Qwen/Astra localmente. Não pedir outra inferência Astra para reorganizar relatórios. Comparação por referências é índice, não validação de causa/verdade.
 
-**Depois:** o script confere o formato da resposta e grava `escaladas/<data>-ASTRA-<tema>.md`, com o commit revisado. O Claude mapeia **item por item** para onde cada achado foi parar (skill, lição, código ou pendência; lição 16).
+## Instrumento existente
+Pelo terminal, Python compatível e `tools/astra.py --help`:
+- `--fase preparar --tema <tema> --pergunta "<pergunta>" --arquivos <lista> --base <commit> --modelo <modelo>`: sem inferência.
+- `--fase enviar --campanha <pasta> --enviar --confirmo-cota`: somente depois de aprovação explícita do pedido/campanha/modelo.
+- `--fase conferir --campanha <pasta>`: fotografia do manifesto, não HEAD atual.
+- `--fase retomar --campanha <pasta>`: diagnóstico, nunca reenvio.
+- `--fase comparar --campanha <pasta> --relatorios <arquivos>`: fase B local.
 
----
+Pipeline não usa organizador Hermes adicional; Codex CLI explícito/read-only em snapshot. Pedido final <=14000 caracteres e até cinco arquivos. Excesso bloqueia, nunca corte oculto. Manifesto schema 1 identifica instrumento/skill, commit completo + estado local/hashes, arquivos/linhas/bytes, pergunta/modelo e hash do pedido. Eventos e artefatos novos por campanha; logs/retorno/modelo/parecer ligados. Falha/resposta antiga/interrupção não aprovam entrega.
 
-## Pedido ao Astra (o script cola o pacote no fim)
-Você é o Astra, auditor do projeto Director. Responda **uma pergunta só** (abaixo), olhando o repositório em modo só leitura.
+## Pedido ao Astra (o script mantém o prompt vigente em PROMPT)
+Responda uma pergunta, sem editar nem usar Unreal/8001/<shared drive> externos ou credenciais. Leia TALIS inteiro e regras neutras; abra somente código/contratos autorizados. Solicite lacuna sem abrir outro arquivo. Achado deve ter prova canônica arquivo:linha existente na fotografia. “Verificado” significa leitura conferida, não reprodução.
 
-**Regras:**
-- **Não edite nada**, não rode git, não use o Unreal nem a porta 8001.
-- Abra só os arquivos da lista "Arquivos que você pode abrir" do pacote. Se precisar de outro, diga qual e por quê, sem abrir.
-- Todo achado precisa de prova `arquivo:linha` que exista. Achado sem prova não conta.
-- Diga se você **verificou** o achado (leu o código e conferiu) ou se é suspeita.
-- No máximo **600 palavras** fora do bloco JSON.
-
-**Responda terminando com UM bloco assim** (é o que o script lê):
+Síntese: até 600 palavras (prosa + resumo), até cinco prioridades opcionais. Todos os defeitos distintos sustentados ficam no JSON técnico, <=64000 bytes, sem máximo cinco nem quota mínima. Uma causa por item; não agrupar para caber. Terminar com UM bloco JSON:
 ```json
-{"pergunta": "<repita a pergunta>",
- "achados": [{"achado": "<o problema, em 1 frase>", "gravidade": "alta|media|baixa",
-              "prova": "<arquivo>:<linha>", "correcao": "<o que fazer, em 1 frase>", "verificado": true}],
- "resumo": "<1 frase>"}
+{"pergunta":"<repita exatamente>","achados":[{"achado":"<consequência e causa>","gravidade":"alta|media|baixa","prova":"<arquivo>:<linha>","correcao":"<proposta>","verificado":true}],"resumo":"<síntese>","prioridades":[1]}
 ```
-Se não achar nada, `"achados": []` e diga no resumo o que olhou.
+Pode adicionar `provas` como lista; TODAS devem ser válidas. `achados: []` e `prioridades: []` são permitidos. Não inventar achados; declarar cobertura e limitações.
+
+## Compatibilidade e aceite
+Resposta antiga sem manifesto é histórica/incompleta; não normalizar nem regravar. Interface conferir_resposta conserva chaves para leitura legada, mas formato não prova verdade. Chamadores antigos sem lista/campanha são bloqueados antes de gastar; painel/Runtime não foram atualizados nesta manutenção. Usar fluxo da skill, não porta antiga, na próxima auditoria.
+Conferir cada achado e ligar destino proposto (teste/correção/pendência) sem implementação automática. Nenhuma LLM aprova a si mesma; Talis decide. Regressores: docs/skills/test_astra_pipeline.py; distribuição: docs/skills/test_skills_agressivas.py. Versão publicada, instalada e efetivamente validada são estados separados; ver referências/evolucao da skill e relatório da manutenção.

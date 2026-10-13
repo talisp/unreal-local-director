@@ -1,0 +1,39 @@
+{
+  "versao": "v0.0.6 (corretiva; medida em 11/10, publicada em 13/10/2026)",
+  "quando": "2026-10-11",
+  "quem": "Claude Code (Opus 5.5), a pedido do Talis",
+  "ambiente": "pasta única, branch main; venv do Runtime; UNREAL_MACROS_OFFLINE=1 nos testes offline; UE 5.8.3, LAB_Animacao no ensaio real",
+  "lotes": [
+    {"lote": "base", "commit": "bdd9ef9", "o_que": "v0.0.5 testada (antes sem commit)", "arvore": "318/319 (o vermelho era a regressão conhecida do L0)"},
+    {"lote": "L0", "commit": "95d4232", "itens": ["saída relativa do Astra"], "testes_novos": "4/4", "regressao": "testes_astra 5/5, test_astra_pipeline 55/55"},
+    {"lote": "L1", "commit": "9a53585", "itens": ["A05", "A06", "A07", "A18"], "testes_novos": "12/12", "controle_negativo": "11 de 12 vermelhos no código anterior", "unreal": "3 s: reload_toolset, inventário com rotação/escala, 86 -> 86 atores"},
+    {"lote": "L2", "commit": "dff6fcc", "itens": ["A01", "A02", "A03", "A04", "A28", "F05", "F06", "F07"], "testes_novos": "24/24", "controle_negativo": "trava 5 falhas + 1 erro em 8; executor/guarda/painel 14 de 16 vermelhos", "bateria_oficial": "OK, marco aprovado"},
+    {"lote": "L3", "commit": "6ad5e46", "itens": ["A08", "A09", "A10", "A11", "F02", "F09"], "testes_novos": "13/13", "controle_negativo": "16 falhas + 2 erros"},
+    {"lote": "L4", "commit": "ff50996", "itens": ["A12", "A13", "A14", "A15", "A16", "F11"], "testes_novos": "16/16", "controle_negativo": "15 falhas + 4 erros", "propriedades": "13/13 sem editar a suíte", "bateria_oficial": "OK, marco aprovado"},
+    {"lote": "L5", "commit": "3c5bd6d", "itens": ["A21", "A22", "A23", "A24", "A25", "A26", "A29", "N1"], "testes_novos": "17/17", "controle_negativo": "8 falhas + 4 erros", "bateria_oficial": "OK, marco aprovado"},
+    {"lote": "L6", "commit": "b7e9253", "itens": ["A17", "A19", "A20", "A27", "E4", "F03", "F04", "F10", "B1", "B6"], "testes_novos": "15/15", "controle_negativo": "6 falhas + 8 erros"},
+    {"lote": "L7", "itens": ["12 suítes no gate", "exportador (N3/N4) em destino isolado", "ensaio Unreal", "documentos"], "arvore_antes_do_commit": "33 suítes 404/404 + propriedades 13/13 + ruff e basedpyright 0 novos"}
+  ],
+  "gate": {"suites_antes": 21, "suites_depois": 33, "fora_de_proposito": ["docs/skills/test_skills_agressivas.py (precisa do Python e do HERMES_HOME do Hermes)"]},
+  "exportador_em_destino_isolado": {"resultado": "limpo []", "arquivos": 187, "bateria_na_copia": "38/38 etapas; ruff e basedpyright 0 novos", "copia_publica_real": "intocada", "publicado": false,
+                                    "nao_exportado": "docs/skills/director-noite/SKILL.md (o cabeçalho tem a autoria com o usuário do GitHub; a conferência barra)"},
+  "ensaio_unreal_real": {
+    "o_que": "UMA tentativa do executor da fila (rodar-agora), com a trava, sem vídeo, com a receita do bloco fdb93eafc4a5",
+    "segundos": 435.2, "nota": 0.0, "passou": true, "intencoes": {"levantar": true, "acenar": true, "andar": true, "parar": true},
+    "trocas_pior_osso_cm": [11.01, 14.48, 13.61, 13.62, 13.62, 13.62, 14.28], "limite_osso_cm": 15.0,
+    "cena_ok": true, "cena_alcance": ["classe", "escala", "rotacao", "rotulo", "xyz"], "atores": "86 -> 86, idênticos",
+    "limpeza_confirmada": ["captura", "sequencia", "atores (2 removidos)", "estudio"], "amostras": 221, "trava_livre_no_fim": true,
+    "regua": "758742982bab37ce", "regua_do_bloco_de_0710": "67de11ab15a71d81",
+    "limites": "uma tentativa não revalida o bloco (são 3, nas mesmas condições); sem vídeo; sem campanha; sem Qwen; biblioteca real não tocada"
+  },
+  "bloco_da_biblioteca": {"id": "fdb93eafc4a5", "status_nas_condicoes_de_agora": "medir_de_novo (a régua mudou de versão, D25/D31)",
+                          "recalculo_offline_com_a_regua_nova": {"notas": [0.0, 0.0, 0.0], "trocas_vivas": 173, "diferentes_da_medida_gravada": 0}},
+  "depois_de_1110": {
+    "primeira_noite_real_1110_1210": {"horas": "7 h 04 min", "tentativas": 28, "cena_restaurada": 28, "falhas_do_programa": 0, "aprovadas_nota_0": 11, "reprovadas_pela_regua": 17,
+                                      "como_terminou": "o modelo local fechou por esgotamento 25 min antes do prazo; não foi queda"},
+    "biblioteca_1310": {"trocas": "173 -> 423", "fichas": 23, "blocos": 1, "bloco_novo": "nenhum (nenhuma receita chegou a 3 tentativas aprovadas)"},
+    "modo_de_teste_da_versao_1310": {"testes_novos": "16/16", "controle_negativo": "13 de 16 vermelhos no código anterior", "arvore": "34 suítes 420/420 + propriedades 13/13",
+                                     "rodou_ao_vivo": false}
+  },
+  "nao_certificado": ["autonomia longa do Qwen", "o modo de teste da versão rodando ao vivo", "vídeo real com a v0.0.6", "outras malhas (Marcos)"]
+}

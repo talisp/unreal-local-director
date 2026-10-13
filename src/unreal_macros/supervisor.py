@@ -29,9 +29,28 @@ def _ts_evento(ev):
     return dt.datetime.fromisoformat(ev["quando"]).timestamp() if ev.get("quando") else 0.0
 
 
+def _jsonl_tolerante(arq: str) -> tuple:
+    """(registros legíveis, nº de linhas ilegíveis). B1: uma linha cortada por queda derrubava o supervisor inteiro
+    (3 falhas seguidas e o laço parava). A parte íntegra vale; a corrupção vira alarme, nunca silêncio."""
+    bons, ruins = [], 0
+    if os.path.exists(arq):
+        with open(arq, encoding="utf-8", errors="replace") as f:
+            for linha in f:
+                if not linha.strip():
+                    continue
+                try:
+                    d = json.loads(linha)
+                except ValueError:
+                    d = None
+                if isinstance(d, dict):
+                    bons.append(d)
+                else:
+                    ruins += 1
+    return bons, ruins
+
+
 def _eventos_brutos(pasta_exp):
-    arq = os.path.join(pasta_exp, "eventos.jsonl")
-    return [json.loads(l) for l in open(arq, encoding="utf-8") if l.strip()] if os.path.exists(arq) else []
+    return _jsonl_tolerante(os.path.join(pasta_exp, "eventos.jsonl"))[0]
 
 
 def progressos_uteis(itens: list, brutos: list) -> list:
@@ -116,9 +135,23 @@ def _tempo_em_espera(intervalos, ini, fim):
 def _violacoes(brutos, hashes_producao, base_producao, sandbox, guarda_sha_base):
     out = []
     if hashes_producao and os.path.exists(hashes_producao):
-        r = subprocess.run(["sha256sum", "-c", "--quiet", hashes_producao], cwd=base_producao, capture_output=True, text=True)
-        if r.returncode:
-            out.append({"tipo": "producao_alterada", "evidencia": (r.stdout + r.stderr).strip().splitlines()[:5]})
+        # B6: conferido com hashlib (antes: o utilitário externo `sha256sum`; sem ele no PATH o alarme não funcionava).
+        # Mesmo formato de arquivo ("<sha256>  <caminho>", com ou sem '*'), mesma semântica: divergente ou ausente.
+        divergentes = []
+        with open(hashes_producao, encoding="utf-8", errors="replace") as f:
+            for linha in f:
+                partes = linha.strip().split(None, 1)
+                if len(partes) != 2:
+                    continue
+                esperado, rel = partes[0].lower(), partes[1].lstrip("*").strip()
+                try:
+                    with open(os.path.join(base_producao or ".", rel), "rb") as alvo:
+                        if hashlib.sha256(alvo.read()).hexdigest() != esperado:
+                            divergentes.append(f"{rel}: FAILED")
+                except OSError:
+                    divergentes.append(f"{rel}: FAILED open or read")
+        if divergentes:
+            out.append({"tipo": "producao_alterada", "evidencia": divergentes[:5]})
     if sandbox and guarda_sha_base:
         g = subprocess.run(["git", "-C", sandbox, "show", "master:src/unreal_macros/guarda.py"], capture_output=True,
                            text=True, encoding="utf-8")
@@ -140,6 +173,8 @@ ACAO = {
     "guarda_alterada": "PAUSA: operador confere a guarda do sandbox",
     "tentativa_proibida": "PAUSA: operador revê a tentativa recusada",
     "emperramento_de_sessao": "seguir o degrau da sessão (resolver-problemas): a estratégia se repete sob nomes diferentes",
+    "registro_corrompido": "há linha ilegível no registro (queda no meio da escrita): a avaliação usou só a parte íntegra; "
+                           "operador confere o arquivo antes de confiar em 'sem alarmes'",
 }
 
 
@@ -162,6 +197,9 @@ def avaliar(agora: float, pasta_rel: str = None, pasta_exp: str = None, trava_pa
     alarmes = []
     for p in getattr(_esperas, "perdidas", []):
         alarmes.append({"tipo": "corrida_perdida", "evidencia": [f"{p['linha']}#corrida#{p['corrida']}"]})
+    ilegiveis = _jsonl_tolerante(os.path.join(pasta_exp, "eventos.jsonl"))[1]
+    if ilegiveis:  # B1: corrupção nunca é ignorada em silêncio
+        alarmes.append({"tipo": "registro_corrompido", "evidencia": [f"eventos.jsonl: {ilegiveis} linha(s) ilegível(is)"]})
     # A. vida / travamento
     st = T.estado(trava_path or TRAVA)
     if st["estado"] == "morta":
@@ -209,7 +247,7 @@ def _registrar(alarmes, pasta_sup):
         return
     os.makedirs(pasta_sup, exist_ok=True)
     arq = os.path.join(pasta_sup, "alarmes.jsonl")
-    vistos = {json.loads(l)["chave"] for l in open(arq, encoding="utf-8") if l.strip()} if os.path.exists(arq) else set()
+    vistos = {d["chave"] for d in _jsonl_tolerante(arq)[0] if "chave" in d}
     with open(arq, "a", encoding="utf-8") as f:
         for a in alarmes:
             chave = a["tipo"] + "|" + json.dumps(a["evidencia"], ensure_ascii=False, sort_keys=True)

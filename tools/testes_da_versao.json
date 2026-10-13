@@ -1,0 +1,49 @@
+{
+  "versao": "v0.0.6",
+  "o_que_e": "O que a versão que está nesta pasta mudou e que uma campanha de laboratório consegue exercitar AO VIVO pelos caminhos protegidos (executor da fila e director_noite.py). Quem diz se cada teste foi coberto é o programa (src/unreal_macros/teste_versao.py), lendo os registros da campanha; o agente só provoca a situação. Atualizar este arquivo a cada versão.",
+  "itens": [
+    {
+      "id": "tentativa_aprovada_completa",
+      "mudou": "L1, L3, L6: cena conferida em caminho, rótulo, classe, posição, rotação e escala; 'passou' = aprovação da tentativa; fotos e amostras em disco",
+      "como": "Uma receita válida pelo comando do executor (tentar, depois resultado N) até uma tentativa passar.",
+      "esperado": "passou=true, medida.passou=true, cena_ok=true, cena_alcance.reduzido=false, os dois arquivos de cena_fotos existem, amostras_arquivo existe e amostras_completas=true."
+    },
+    {
+      "id": "reprovada_guarda_amostras",
+      "mudou": "L3, L6: tentativa reprovada guarda as amostras e não vira aprovação",
+      "como": "Uma tentativa que a régua reprove (nota maior que zero). Acontece sozinha durante a exploração.",
+      "esperado": "nota > 0, passou=false, medida.passou=false, cena_ok=true, amostras_arquivo existe e amostras_completas=true."
+    },
+    {
+      "id": "repeticao_tres_vezes",
+      "mudou": "L3: um único significado de sucesso (3 tentativas DISTINTAS, aprovadas, nas mesmas condições e versões)",
+      "como": "Repetir a MESMA receita aprovada até somar 3 tentativas aprovadas (mesma assinatura). Em laboratório isso não encerra a campanha.",
+      "esperado": "O estado do executor mostra sucesso com vezes=3 para a assinatura; a campanha continua aceitando tentativas."
+    },
+    {
+      "id": "recusa_receita_invalida",
+      "mudou": "L2, L4: recusa antes do Unreal, sem gastar número; turn_deg booleano/NaN recusado",
+      "como": "Enviar com tentar uma receita inválida de propósito: turn_deg true (booleano), OU corte_fim_q maior que o clipe, OU a ordem dos papéis trocada.",
+      "esperado": "Resposta {\"recusada\": [...]} com o motivo; nenhum número é reservado (proximo_n igual antes e depois); nada chega ao Unreal."
+    },
+    {
+      "id": "segunda_admissao_recusada",
+      "mudou": "L2: admissão exclusiva; uma tentativa por vez",
+      "como": "Com uma tentativa ainda rodando (logo depois de um tentar aceito), chamar tentar de novo com outra receita válida.",
+      "esperado": "A segunda é recusada com 'ainda está rodando'; a primeira termina normalmente e só um número foi reservado."
+    },
+    {
+      "id": "video_completo",
+      "mudou": "L6: o vídeo só existe completo; captura que falha fica registrada e nenhum mp4 é gerado",
+      "como": "Uma tentativa com --video (peça uma só; vídeo é caro).",
+      "esperado": "video.completo=true, video.quadros == video.esperados, o arquivo mp4 existe. Se sair completo=false, o resultado traz os quadros que faltaram e a tentativa não é aprovada: isso é um achado, registre com concluir (classe suspeita, teste=video_completo)."
+    }
+  ],
+  "so_offline": [
+    {"o_que": "queda no meio da tentativa, sobra na cena sem dono, limpeza que não confirma", "onde": "src/testes_v006_l1.py", "porque": "exigiria plantar falha na cena real"},
+    {"o_que": "receita trocada depois de validada, estado.json perdido ou ilegível, pendência de processo morto, trava com dono substituído", "onde": "src/testes_v006_l2.py", "porque": "exigiria editar arquivos da rodada ou plantar falha na trava real"},
+    {"o_que": "régua: coordenada não finita, valor imediatamente acima do limite, pé que começa no ar, aceno através de ponte, quota de exploração", "onde": "src/testes_v006_l4.py", "porque": "depende de medidas que não se forçam no Unreal"},
+    {"o_que": "vigia: encerramento, memória de causas, trava órfã, modo seco, prazo absoluto, relatório provisório", "onde": "src/testes_v006_l5.py", "porque": "é o comportamento do supervisor, não do agente supervisionado"},
+    {"o_que": "histórico corrompido, vídeo com captura faltando, reimportar bloco, diário, supervisor com registro truncado", "onde": "src/testes_v006_l6.py", "porque": "exigiria corromper registros reais"}
+  ]
+}

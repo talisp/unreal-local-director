@@ -48,6 +48,12 @@ class _Ator:
     def get_actor_location(self):
         return _Vec(1, 2, 3)
 
+    def get_actor_rotation(self):  # v0.0.6 (L1): o inventário devolve também rotação e escala
+        return types.SimpleNamespace(pitch=0.0, yaw=90.0, roll=0.0)
+
+    def get_actor_scale3d(self):
+        return _Vec(1, 1, 2)
+
     def get_components_by_class(self, _):
         return []
 
@@ -120,6 +126,8 @@ def t_inventario():
     pcs = json.loads(dt.DirectorTools.list_actors(class_name="SkeletalMeshActor"))
     pref = json.loads(dt.DirectorTools.list_actors(label_prefix="PC_2"))
     assert todos["total"] == 26 and pcs["total"] == 25 and pref["total"] == 5, (todos["total"], pcs["total"], pref)
+    um = todos["atores"][0]  # v0.0.6 (L1): rotação [pitch, yaw, roll] e escala entram na fotografia da cena
+    assert um["rotacao"] == [0.0, 90.0, 0.0] and um["escala"] == [1, 1, 2] and um["xyz"] == [1, 2, 3], um
 
 
 @caso("rótulo só casa exato: parcial devolve erro com candidatos (não mexe no ator errado)")

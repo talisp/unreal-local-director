@@ -11,7 +11,7 @@ from . import fila as F
 from . import receita as R
 
 CATALOGO = tuple(F.PAPEIS) + ("trocas", "duracao")
-CAMPOS = ("nome", "descricao", "papeis", "pode_variar", "fixo", "criterios", "variacoes", "prazo_tentativas", "ate")
+CAMPOS = ("nome", "descricao", "papeis", "pode_variar", "fixo", "criterios", "variacoes", "prazo_tentativas", "ate", "personagem")
 VARIACOES_MAX = 5
 
 
@@ -80,10 +80,10 @@ def estado_variacoes(tentativas: list, k: int) -> dict:
     suc = F.sucesso(tentativas)
     if not suc:
         return {"fase": "sucesso_pendente", "base": None, "aceitas": [], "faltam": k}
-    base = next(t for t in tentativas if t.get("assinatura") == suc["assinatura"] and t.get("nota") == 0)
+    base = next(t for t in tentativas if t.get("assinatura") == suc["assinatura"] and F.elegivel(t))
     refs, aceitas = [{"passos": base["receita"]}], []
     for t in tentativas:
-        if t.get("variacao") and t.get("nota") == 0:
+        if t.get("variacao") and F.elegivel(t):  # a mesma elegibilidade do sucesso (v0.0.6, L3)
             r = {"passos": t["receita"]}
             if diferente_de_verdade(r, refs)[0]:
                 refs.append(r)

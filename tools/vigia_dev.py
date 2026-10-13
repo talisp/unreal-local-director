@@ -29,6 +29,7 @@ import sys
 import time
 import urllib.error
 import urllib.request
+from pathlib import Path
 
 RAIZ = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.insert(0, os.path.join(RAIZ, "src"))
@@ -112,6 +113,7 @@ def ler_log(linhas: list, sessoes: set) -> dict:
 
 def ler_rodada(pasta: str) -> dict:
     tent, especiais, ultimo_especial = [], [], None
+    inseguro, experimentos_medidos = False, None
     arq = os.path.join(pasta, "tentativas.jsonl")
     if os.path.exists(arq):
         for ln in open(arq, encoding="utf-8", errors="replace"):
@@ -120,6 +122,8 @@ def ler_rodada(pasta: str) -> dict:
             except ValueError:
                 continue
             tl = d.get("tipo_linha")
+            if d.get("cena_ok") is False or d.get("classe_erro") == "estado_parcial" or tl == "estado_parcial":
+                inseguro = True
             if tl == "tentativa" or (tl is None and d.get("tipo") in ("ajuste", "exploracao")):
                 tent.append(d)
                 ultimo_especial = "estado_parcial" if d.get("classe_erro") == "estado_parcial" else None
@@ -131,15 +135,29 @@ def ler_rodada(pasta: str) -> dict:
         pendente = json.load(open(os.path.join(pasta, "estado.json"), encoding="utf-8")).get("pendente")
     except (OSError, ValueError):
         pendente = None
+    if os.path.exists(os.path.join(pasta, 'campanha.json')):
+        # A21: em campanha, só a autoridade de encerramento da própria campanha vale (FECHAMENTO.md no modo formal,
+        # ENCERRAMENTO.json válido no experimental). ENSAIO.md e a linha 'fechamento' são marcadores das rodadas legadas.
+        from unreal_macros import campanha as CP  # pyright: ignore[reportMissingImports]
+        try:
+            terminou = CP.encerrada(pasta)
+        except (ValueError, OSError, TypeError, KeyError):
+            terminou, inseguro = False, True
+        try:  # experimentos concluídos COM medida real: a unidade de progresso do laboratório (ver decidir_campanha)
+            experimentos_medidos = sum(e.get("classe") == "medido" for e in CP.laboratorio(pasta)["experimentos"])
+        except (ValueError, OSError, TypeError, KeyError):
+            pass
+    else:  # rodada legada: fechamento escrito, linha de fechamento, ou o ensaio (fecha com ENSAIO.md: não relançar depois)
+        terminou = (os.path.exists(os.path.join(pasta, 'FECHAMENTO.md')) or 'fechamento' in especiais
+                    or os.path.exists(os.path.join(pasta, "ENSAIO.md")))
     return {"tentativas": len(tent), "melhor_nota": min(notas) if notas else None,
             "ultimas": [{k: t.get(k) for k in ("n", "linhagem", "tipo", "nota", "classe_erro", "aprendizado")} for t in tent[-3:]],
-            "terminou": os.path.exists(os.path.join(pasta, "FECHAMENTO.md")) or "fechamento" in especiais
-            or os.path.exists(os.path.join(pasta, "ENSAIO.md")),  # o ensaio fecha com ENSAIO.md: não relançar depois
+            "terminou": terminou,
             "ultimo_especial": ultimo_especial, "linhagens_fechadas": especiais.count("linhagem_fechada"),
-            "pendente": pendente}
+            "pendente": pendente, "inseguro": inseguro, "experimentos_medidos": experimentos_medidos}
 
 
-def saude() -> dict:
+def saude(campanha: bool = False) -> dict:
     s = {}
     try:
         urllib.request.urlopen(MODELO, timeout=10).read(100)
@@ -155,6 +173,9 @@ def saude() -> dict:
         s["unreal"] = False
     st = T.estado(TRAVA)
     s["trava"], s["trava_motivo"] = st["estado"], st["motivo"]
+    if campanha:
+        s["scripts_da_rodada"] = 0
+        return s
     try:
         r = subprocess.run(["powershell", "-NoProfile", "-Command",
                             "(Get-CimInstance Win32_Process -Filter \"Name='python.exe'\" | Where-Object { $_.CommandLine -like '*fila_2026*' -or $_.CommandLine -like '*\\work\\fila*' }).Count"],
@@ -179,10 +200,70 @@ def _causa(motivo: str | None) -> str:
     return "caiu" if not m else f"outro:{m}"
 
 
+def decidir_campanha(obs: dict, mem: dict, agora: float, lim: dict) -> dict:
+    """Mesmo supervisor, contrato opt-in: prazo absoluto, memória local, sem desistência por sessões."""
+    from unreal_macros import processos as P
+    lg, rd, sd = obs["log"], obs["rodada"], obs["saude"]
+    bloqueios = obs.get("bloqueios_campanha", [])
+    # A22: progresso MEDIDO (a melhor nota melhorou; mais linhas sem nota melhor não contam) zera a memória de causas.
+    # Sem isto, uma causa antiga fazia a vigia mandar "mude a hipótese" mesmo depois de o caminho ter melhorado.
+    melhor = rd.get("melhor_nota")
+    if melhor is not None and (mem.get("melhor") is None or melhor < mem["melhor"]):
+        mem.update(melhor=melhor, causas=[])
+    # Laboratório (13/10): depois da 1ª nota 0 a melhor nota não tem como melhorar, e a memória de causas nunca
+    # mais zerava: na campanha de 11→12/10 a vigia mandou "mude a hipótese" em 3 de 4 relançamentos, com o agente
+    # concluindo experimentos novos a cada sessão. Experimento concluído COM MEDIDA (o `concluir` exige tentativa
+    # real e cena restaurada) também é progresso. Mais linhas sem experimento concluído continuam não contando.
+    medidos = rd.get("experimentos_medidos")
+    if isinstance(medidos, int) and medidos > mem.get("experimentos_medidos", 0):
+        mem.update(experimentos_medidos=medidos, causas=[])
+    if any(x.startswith("estado_inseguro") for x in bloqueios):
+        return {"estado": "estado_inseguro", "acoes": [], "causa": "; ".join(bloqueios)}
+    if rd["terminou"]:
+        return {"estado": "terminou", "acoes": ["encerrar"], "causa": None}
+    if bloqueios:
+        estado = ("estado_inseguro" if any(x.startswith("estado_inseguro") for x in bloqueios) else
+                  "pausado" if obs.get("pausa") else "bloqueado")
+        return {"estado": estado, "acoes": [], "causa": "; ".join(bloqueios)}
+    if obs.get("pausa"):
+        return {"estado": "pausado", "acoes": [], "causa": None}
+    if agora >= obs["campanha"]["fim_ts"]:
+        return {"estado": "prazo_encerrado", "acoes": [], "causa": None}
+    if rd["terminou"]:
+        return {"estado": "terminou", "acoes": ["encerrar"], "causa": None}
+    if rd.get("pendente"):
+        return {"estado": "aguardando_executor", "acoes": [], "causa": None}
+    if sd.get("trava") == "morta":
+        # A23: aqui a campanha está comprovadamente segura (sem bloqueio, sem execução pendente) e o dono da trava
+        # está comprovadamente MORTO: é a órfã que a trava.py sabe liberar (só a aquisição observada, F06). Antes a
+        # vigia de campanha ficava em "aguardando_operador" até o prazo. Nada da cena é limpo aqui.
+        return {"estado": "trava_orfa", "acoes": ["liberar_trava"], "causa": sd.get("trava_motivo")}
+    if sd.get("trava") == "corrompida":  # ninguém libera sozinho: bloqueio explícito, com o motivo
+        return {"estado": "trava_corrompida", "acoes": [], "causa": sd.get("trava_motivo") or "trava ilegível"}
+    if sd.get("trava") not in ("livre", "propria"):  # dono vivo ou não verificável: esperar
+        return {"estado": "aguardando_operador", "acoes": [], "causa": sd.get("trava_motivo")}
+    if not sd.get("modelo") or not sd.get("unreal"):
+        return {"estado": "infra_fora", "acoes": [], "causa": "modelo/unreal indisponível"}
+    processo = sd.get("sessao_processo")
+    if processo in (P.VIVO, P.DESCONHECIDO):
+        return {"estado": "trabalhando" if processo == P.VIVO else "processo_desconhecido", "acoes": [], "causa": None}
+    if lg["turno_ativo"] and processo is None:
+        return {"estado": "trabalhando", "acoes": [], "causa": None}
+    if len([t for t in mem.get("relancos", []) if agora - t < 3600]) >= lim["relancos_hora"]:
+        return {"estado": "teto_da_hora", "acoes": [], "causa": None}
+    causa = _causa(lg.get("motivo_fim")) if lg.get("sessao") else "inicio"
+    mudar = causa in mem.get("causas", []) and causa != "orcamento"
+    return {"estado": "parou", "acoes": ["relancar_mudando" if mudar else "relancar"], "causa": causa}
+
+
 def decidir(obs: dict, mem: dict, agora: float, lim: dict = LIM) -> dict:
     """obs = {log, rodada, saude, pausa}. mem = memória da vigia (é atualizada aqui). Devolve {estado, acoes, causa}."""
     lg, rd, sd = obs["log"], obs["rodada"], obs["saude"]
     acoes = []
+    if rd.get("inseguro") or rd.get("ultimo_especial") == "estado_parcial":
+        return {"estado": "estado_inseguro", "acoes": [], "causa": "estado_parcial"}
+    if obs.get("campanha"):
+        return decidir_campanha(obs, mem, agora, lim)
     if sd.get("trava") == "morta":
         acoes.append("liberar_trava")
     # progresso real zera as contagens (regra de dois e críticas)
@@ -241,7 +322,12 @@ def decidir(obs: dict, mem: dict, agora: float, lim: dict = LIM) -> dict:
 
 
 # ---------- ações ----------
+SECO = False  # A25: com --seco a vigia SÓ olha; a observação sai na saída padrão e nenhum arquivo é criado ou mudado
+
+
 def _registrar(nome: str, d: dict):
+    if SECO:
+        return
     os.makedirs(PASTA, exist_ok=True)
     with open(os.path.join(PASTA, nome), "a", encoding="utf-8") as f:
         f.write(json.dumps(dict(quando=dt.datetime.now().isoformat(timespec="seconds"), **d), ensure_ascii=False,
@@ -250,6 +336,15 @@ def _registrar(nome: str, d: dict):
 
 def prompt_corrigido(pedido: str, rodada: str, rd: dict, causa: str, mudar: bool) -> str:
     pedido, rodada = os.path.abspath(pedido), os.path.abspath(rodada)  # o terminal do Runtime começa em <shared drive>
+    if os.path.exists(os.path.join(rodada, "campanha.json")):
+        from unreal_macros import campanha as CP
+        c = CP.ler(rodada)
+        return (f"{PREFIXO} Continue somente a campanha {c['id']}. Raiz: {RAIZ}. "
+                f"Leia integralmente {pedido}, {rodada}/OBJETIVO.txt, {rodada}/PLANO.json e LICOES.md. "
+                f"Execute tools/director_noite.py estado {c['id']} pela raiz antes de agir. "
+                f"Prazo absoluto {c['fim_ts']}; não reinterprete o objetivo. Motivo anterior: {causa}. "
+                + ("Mude a hipótese usando o melhor resultado seguro e a linhagem/de; não desfaça a cena. " if mudar else "")
+                + "Pausa/encerramento/estado parcial bloqueiam novas operações. Não editar código nem chamar outros modelos.")
     ult = "; ".join(f"n={u['n']} {u['tipo']} nota={u['nota']} {u['classe_erro']}" for u in rd["ultimas"]) or "nenhuma"
     return (f"{PREFIXO} Antes de qualquer comando: cd {RAIZ} (nunca grave em Y:). Continue a rodada descrita em {pedido} (leia o pedido inteiro de novo; as regras valem todas). "
             f"NÃO recomece do zero: o estado está em {rodada} (tentativas.jsonl, encaixes.jsonl, LICOES.md, "
@@ -262,19 +357,31 @@ def prompt_corrigido(pedido: str, rodada: str, rd: dict, causa: str, mudar: bool
 
 
 def relancar(texto: str, mem: dict, seco: bool) -> dict:
-    arq = os.path.join(PASTA, f"relanco_{int(time.time())}.txt")
+    if "campanha" in mem:
+        import director_noite as N
+        if not N.perfil_local():
+            return {"bloqueio": "perfil deixou de ser Qwen local: nenhuma inferência lançada"}
+    arq = os.path.join(PASTA, f"relanco_{time.time_ns()}.txt")
     if seco:
         return {"seco": True, "prompt": texto[:300]}
     os.makedirs(PASTA, exist_ok=True)
-    open(arq, "w", encoding="utf-8").write(texto)
-    saida = open(arq.replace(".txt", "_saida.txt"), "w", encoding="utf-8")
-    orc = int(min(LIM["run_budget_s"], max(60, LIM.get("fim_ts", time.time() + 10**6) - time.time())))
-    subprocess.Popen(["cmd", "/c", HERMES_CMD, "-p", PERFIL, "chat", "--query-file", arq, "-Q",
-                      "--max-turns", str(LIM["max_turns"]), "--run-budget", str(orc), "--in", RAIZ],
-                     cwd=RAIZ, stdout=saida, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
-                     creationflags=0x00000008 | 0x00000200)  # DETACHED_PROCESS | CREATE_NEW_PROCESS_GROUP
+    Path(arq).write_text(texto, encoding="utf-8")
+    if "campanha" in mem:
+        from unreal_macros import campanha as CP
+        mem["lancamento_em_curso"] = True
+        CP.gravar(Path(PASTA), "memoria.json", mem)  # queda antes de guardar PID fica explícita
+    orc = int(min(LIM["run_budget_s"], max(1, LIM.get("fim_ts", time.time() + 10**6) - time.time())))
+    with open(arq.replace(".txt", "_saida.txt"), "w", encoding="utf-8") as saida:
+        processo = subprocess.Popen(["cmd", "/c", HERMES_CMD, "-p", PERFIL, "chat", "--query-file", arq, "-Q",
+                                     "--max-turns", str(LIM["max_turns"]), "--run-budget", str(orc), "--in", RAIZ],
+                                    cwd=RAIZ, stdout=saida, stderr=subprocess.STDOUT, stdin=subprocess.DEVNULL,
+                                    creationflags=0x00000008 | 0x00000200)  # processo solto, parent fecha o descritor
     mem.setdefault("relancos", []).append(time.time())
     mem["relanco_pendente"] = time.time()
+    mem["sessao_pid"] = processo.pid
+    if "campanha" in mem:
+        mem["lancamento_em_curso"] = False
+        CP.gravar(Path(PASTA), "memoria.json", mem)
     return {"prompt_arquivo": arq}
 
 
@@ -314,6 +421,8 @@ def veredito(resp: str) -> str:
 
 
 def avisar(motivo: str, obs: dict):
+    if SECO:
+        return
     os.makedirs(PASTA, exist_ok=True)
     with open(os.path.join(PASTA, "AVISO.md"), "a", encoding="utf-8") as f:
         f.write(f"- {dt.datetime.now():%d/%m %H:%M} · a vigia parou de agir: {motivo}. Rodada: "
@@ -322,6 +431,14 @@ def avisar(motivo: str, obs: dict):
 
 def executar(dec: dict, obs: dict, mem: dict, args) -> list:
     res = []
+    if ler_rodada(args.rodada).get("inseguro"):
+        return []
+    if obs["rodada"].get("inseguro") or obs["rodada"].get("ultimo_especial") == "estado_parcial":
+        return []
+    if getattr(args, "campanha", None):
+        from unreal_macros import campanha as CP
+        if CP.guarda(args.rodada, admissao=False):
+            return []  # rechecagem: decisão antiga não atravessa pausa/estado parcial novo
     for a in dec["acoes"]:
         if a == "liberar_trava":
             r = {} if args.seco else T.liberar_orfa(TRAVA, os.path.join(PASTA, "trava.log"))
@@ -369,8 +486,16 @@ def observar(args, mem) -> dict:
         if s not in mem["sessoes"]:
             mem["sessoes"].append(s)
             mem.pop("relanco_pendente", None)
-    return {"log": lg, "rodada": ler_rodada(args.rodada), "saude": saude(),
-            "pausa": os.path.exists(os.path.join(PASTA, "PAUSA"))}
+    out = {"log": lg, "rodada": ler_rodada(args.rodada), "saude": saude(bool(getattr(args, "campanha", None))),
+           "pausa": os.path.exists(os.path.join(PASTA, "PAUSA"))}
+    if getattr(args, "campanha", None):
+        from unreal_macros import campanha as CP, processos as P
+        out["campanha"] = CP.ler(args.rodada)
+        out["bloqueios_campanha"] = CP.guarda(args.rodada, admissao=False)
+        out["pausa"] = os.path.exists(os.path.join(args.rodada, "PAUSA"))
+        out["saude"]["scripts_da_rodada"] = 0  # pendente local é a fonte, não heurística por nome
+        out["saude"]["sessao_processo"] = P.estado_processo(mem["sessao_pid"]) if mem.get("sessao_pid") else None
+    return out
 
 
 def sessao_inicial() -> str | None:
@@ -398,13 +523,15 @@ def resumo():
            f"- por causa: {causas}\n- ações: {acoes}\n\n## Linha a linha\n" +
            "".join(f"- {d['quando']} · {d['estado']} · causa {d.get('causa')} · {d.get('resultados')} · "
                    f"tentativas {d.get('tentativas')} → depois veja se subiu\n" for d in linhas))
-    os.makedirs(PASTA, exist_ok=True)
-    open(os.path.join(PASTA, "RESUMO.md"), "w", encoding="utf-8").write(txt)
+    if not SECO:
+        os.makedirs(PASTA, exist_ok=True)
+        open(os.path.join(PASTA, "RESUMO.md"), "w", encoding="utf-8").write(txt)
     return txt
 
 
 def main():
     ap = argparse.ArgumentParser()
+    ap.add_argument("--campanha", help="ID da campanha director-noite (contrato opt-in)")
     ap.add_argument("--rodada", default=os.path.join("work", "fila_2026-10-07"))
     ap.add_argument("--pedido", default=os.path.join("escaladas", "2026-10-07-RODADA-fila-de-movimentos.md"))
     ap.add_argument("--sessao", help="sessão do hermes-dev a vigiar (padrão: a mais recente)")
@@ -419,54 +546,87 @@ def main():
     ap.add_argument("--run-budget", type=int, help="teto de segundos por sessão relançada (padrão 5400)")
     ap.add_argument("--ocioso-min", type=float, help="minutos parado antes de agir (padrão 10)")
     args = ap.parse_args()
-    global PASTA, PERFIL, LOG_DEV
+    global PASTA, PERFIL, LOG_DEV, PREFIXO, SECO
     PERFIL = args.perfil
+    SECO = bool(args.seco)
     LOG_DEV = os.path.join(HERMES_DIR, "profiles", PERFIL, "logs", "agent.log")
     if args.pasta:
         PASTA = os.path.abspath(args.pasta)
-    for k, v in (("intervalo_s", args.intervalo), ("max_turns", args.max_turns), ("run_budget_s", args.run_budget),
-                 ("ocioso_min", args.ocioso_min)):
-        if v is not None:
-            LIM[k] = v
-    os.chdir(RAIZ)
-    if args.resumo:
-        print(resumo())
+    campanha = None
+    travas = []
+    try:
+        if args.campanha:
+            from unreal_macros import campanha as CP
+            campanha = CP.ler(args.rodada)
+            if campanha["id"] != args.campanha or PERFIL != campanha["perfil"]:
+                raise ValueError("vigia ligada a outra campanha/perfil")
+            PASTA = os.path.join(os.path.abspath(args.rodada), "vigia")
+            PREFIXO = f"[director-noite:{args.campanha}]"
+            if not args.seco and not args.resumo:
+                for lock in (str(Path(args.rodada).resolve().parent / "operador.trava"),
+                             os.path.join(PASTA, "operador.trava")):
+                    T.pegar(lock, "vigia:" + args.campanha)
+                    travas.append(lock)
+        for k, v in (("intervalo_s", args.intervalo), ("max_turns", args.max_turns), ("run_budget_s", args.run_budget),
+                     ("ocioso_min", args.ocioso_min)):
+            if v is not None:
+                LIM[k] = v
+        os.chdir(RAIZ)
+        if args.resumo:
+            print(resumo())
+            return 0
+        if not SECO:
+            os.makedirs(PASTA, exist_ok=True)
+        arq_mem = os.path.join(PASTA, "memoria.json")
+        mem = json.load(open(arq_mem, encoding="utf-8")) if os.path.exists(arq_mem) and not args.seco else {}
+        if campanha:
+            if mem.get("campanha", args.campanha) != args.campanha:
+                raise ValueError("memória de outra campanha: não reutilizar")
+            mem["campanha"] = args.campanha
+            mem.setdefault("sessoes", [])  # nunca adotar conversa mais recente do perfil
+        if "sessoes" not in mem:  # "nenhuma" = só as sessões que a própria vigia lançar (teste)
+            mem["sessoes"] = [] if args.sessao == "nenhuma" else [s for s in [args.sessao or sessao_inicial()] if s]
+        h, m = map(int, args.ate.split(":"))
+        fim = dt.datetime.now().replace(hour=h, minute=m, second=0, microsecond=0)
+        if fim <= dt.datetime.now():
+            fim += dt.timedelta(days=1)
+        if campanha:
+            fim = dt.datetime.fromtimestamp(campanha["fim_ts"])
+        LIM["fim_ts"] = fim.timestamp()  # barreira: depois disso a vigia só observa
+        _registrar("vigia.log", {"evento": "inicio", "sessoes": mem["sessoes"], "rodada": args.rodada, "ate": str(fim),
+                                 "seco": args.seco})
+        while True:
+            if os.path.exists(os.path.join(PASTA, "PARAR")) or (campanha and os.path.exists(os.path.join(args.rodada, "PARAR"))):
+                _registrar("vigia.log", {"evento": "parada", "motivo": "arquivo PARAR"})
+                break
+            obs = observar(args, mem)
+            dec = decidir(obs, mem, time.time())
+            res = executar(dec, obs, mem, args)
+            linha = {"estado": dec["estado"], "causa": dec["causa"], "tentativas": obs["rodada"]["tentativas"],
+                     "melhor_nota": obs["rodada"]["melhor_nota"], "turno_ativo": obs["log"]["turno_ativo"],
+                     "contexto_in": obs["log"]["contexto_in"], "saude": obs["saude"], "sessoes": mem["sessoes"][-3:]}
+            _registrar("vigia.log", linha)
+            if res:
+                _registrar("intervencoes.jsonl", dict(linha, resultados=res, evidencia={
+                    "motivo_fim": obs["log"]["motivo_fim"], "ultimas": obs["rodada"]["ultimas"]}))
+            print(json.dumps(dict(linha, acoes=res), ensure_ascii=False, default=str), flush=True)
+            if not args.seco:
+                if campanha:
+                    CP.gravar(Path(PASTA), "memoria.json", mem)
+                else:
+                    json.dump(mem, open(arq_mem, "w", encoding="utf-8"), ensure_ascii=False)
+            if args.uma_vez or dec["estado"] in ("terminou", "desistiu", "estado_inseguro") or dt.datetime.now() >= fim:
+                break
+            time.sleep(LIM["intervalo_s"])
+        resumo()
+        if campanha and not SECO:  # A25: o modo seco não refaz o relatório oficial
+            import director_noite as N
+            N.relatorio(Path(args.rodada))
         return 0
-    os.makedirs(PASTA, exist_ok=True)
-    os.makedirs(PASTA, exist_ok=True)
-    arq_mem = os.path.join(PASTA, "memoria.json")
-    mem = json.load(open(arq_mem, encoding="utf-8")) if os.path.exists(arq_mem) and not args.seco else {}
-    if "sessoes" not in mem:  # "nenhuma" = só as sessões que a própria vigia lançar (teste)
-        mem["sessoes"] = [] if args.sessao == "nenhuma" else [s for s in [args.sessao or sessao_inicial()] if s]
-    h, m = map(int, args.ate.split(":"))
-    fim = dt.datetime.now().replace(hour=h, minute=m, second=0, microsecond=0)
-    if fim <= dt.datetime.now():
-        fim += dt.timedelta(days=1)
-    LIM["fim_ts"] = fim.timestamp()  # barreira: depois disso a vigia só observa
-    _registrar("vigia.log", {"evento": "inicio", "sessoes": mem["sessoes"], "rodada": args.rodada, "ate": str(fim),
-                             "seco": args.seco})
-    while True:
-        if os.path.exists(os.path.join(PASTA, "PARAR")):
-            _registrar("vigia.log", {"evento": "parada", "motivo": "arquivo PARAR"})
-            break
-        obs = observar(args, mem)
-        dec = decidir(obs, mem, time.time())
-        res = executar(dec, obs, mem, args)
-        linha = {"estado": dec["estado"], "causa": dec["causa"], "tentativas": obs["rodada"]["tentativas"],
-                 "melhor_nota": obs["rodada"]["melhor_nota"], "turno_ativo": obs["log"]["turno_ativo"],
-                 "contexto_in": obs["log"]["contexto_in"], "saude": obs["saude"], "sessoes": mem["sessoes"][-3:]}
-        _registrar("vigia.log", linha)
-        if res:
-            _registrar("intervencoes.jsonl", dict(linha, resultados=res, evidencia={
-                "motivo_fim": obs["log"]["motivo_fim"], "ultimas": obs["rodada"]["ultimas"]}))
-        print(json.dumps(dict(linha, acoes=res), ensure_ascii=False, default=str), flush=True)
-        if not args.seco:
-            json.dump(mem, open(arq_mem, "w", encoding="utf-8"), ensure_ascii=False)
-        if args.uma_vez or dec["estado"] in ("terminou", "desistiu") or dt.datetime.now() >= fim:
-            break
-        time.sleep(LIM["intervalo_s"])
-    resumo()
-    return 0
+    finally:
+        for lock in reversed(travas):
+            T.soltar(lock)
+
 
 
 if __name__ == "__main__":

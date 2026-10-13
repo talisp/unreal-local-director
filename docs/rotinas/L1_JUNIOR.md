@@ -1,5 +1,7 @@
 # L1: o olhar de júnior (rotina do hermes-dev)
 
+> **Distinção de fluxos:** este documento preserva a pesquisa temática usada por tools/junior.py. `/qwen-junior` é a investigação adversarial por campanhas, regida por `docs/skills/qwen-junior.md`: saída exclusiva em work/bateria/propostas/ (ou destino pedido), somente relatos/dados, sem marcar temas nem escrever código sem autorização específica. Não aplicar o formato/destino ideias/ deste fluxo a campanhas. Nomes excepcionais autorizados são válidos e artefatos anteriores são preservados.
+
 > Linha 1 do [PLANO_PROXIMA_VERSAO.md](../PLANO_PROXIMA_VERSAO.md), Fase 9.
 > **Situação (08/10):** esta rotina e o conferidor (`tools/conferir_ideias.py`) estão prontos.
 > **1º passo feito (08/10):** a busca na web e o Context7 respondem no `hermes-dev` (sessão 20261008_134511_790ce3). **1ª rodada feita (08/10):** tema 1, 5 ideias, conferidor aprovou e os números conferem (sessão 20261008_134610_39ddc1, 11,4 min).
@@ -23,7 +25,7 @@ Você é o "olhar de júnior" do Director: olhe o projeto com olhos novos e trag
    - `docs/PENDENCIAS.md`: ideia repetida de uma pendência aberta é recusada;
    - os arquivos do código ligados ao tema.
 2. **Biblioteca Python: use o Context7 sempre**, antes de propor qualquer ideia que envolva uma biblioteca:
-   - confira a versão **instalada** no `pip freeze` do venv certo: `venv\` (Runtime) ou `.venv-ferramentas\` (ferramentas);
+   - confira a versão **instalada** com `importlib.metadata.version` no Python do venv certo (não depender de pip disponível): `venv\` (Runtime) ou `.venv-ferramentas\` (ferramentas);
    - peça ao Context7 a documentação **dessa versão**. Há relatos de ele trocar de biblioteca: confira o nome;
    - **o Context7 é fonte auxiliar, não verdade.** Confira o que ele disser contra o código do repositório;
    - se o Context7 não responder, escreva isso no arquivo e siga sem ele. **Não invente documentação.**

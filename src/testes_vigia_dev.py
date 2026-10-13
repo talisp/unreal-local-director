@@ -146,7 +146,7 @@ def t_fim_pausa_parcial():
     o["pausa"] = True
     assert V.decidir(o, {}, em(0)) == {"estado": "pausado", "acoes": [], "causa": None}
     d = V.decidir(obs(log, rodada(2, extra=["estado_parcial"])), {}, em(0))
-    assert d["causa"] == "estado_parcial" and d["acoes"] == ["relancar"], d
+    assert d == {"estado": "estado_inseguro", "acoes": [], "causa": "estado_parcial"}, d
 
 
 @caso("tetos: 3 relançamentos na hora -> espera; 10 na noite -> para e avisa")

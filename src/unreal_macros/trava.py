@@ -9,6 +9,7 @@ sistema operacional, nunca pela idade da trava:
   corrompida  — arquivo ilegível ou sem pid: NUNCA é tratada como órfã em silêncio.
 Travas antigas (sem horário de criação, escritas pela v0.0.1) são conservadoras: pid existente = viva.
 """
+import contextlib
 import datetime as dt
 import errno
 import json
@@ -88,20 +89,39 @@ def _ler(caminho: str) -> str:
             time.sleep(_LEITURA_PAUSA_S)
 
 
+_MINHAS: dict = {}  # caminho normalizado -> nonce da aquisição feita por ESTE processo (F07: pid sozinho não é dono)
+
+
+def _chave(caminho: str) -> str:
+    return os.path.normcase(os.path.abspath(caminho))
+
+
 def estado(caminho: str) -> dict:
     """Diagnóstico da trava: {'estado': livre|propria|viva|morta|corrompida|indisponivel, 'info': ..., 'motivo': ...}.
 
     indisponivel = o sistema negou a leitura mesmo depois das novas tentativas. Não é livre, nem morta, nem
     corrompida: ninguém assume, remove ou libera por causa dela (pegar responde "espere")."""
+    return _observar(caminho)[0]
+
+
+def _observar(caminho: str) -> tuple:
+    """(diagnóstico, texto lido). O texto é a IDENTIDADE do que foi observado: quem for remover a trava por causa
+    deste diagnóstico confere que o arquivo ainda é esse (F06)."""
     if not os.path.exists(caminho):
-        return {"estado": "livre", "info": None, "motivo": "sem arquivo de trava"}
+        return {"estado": "livre", "info": None, "motivo": "sem arquivo de trava"}, None
     try:
         texto = _ler(caminho)
+    except FileNotFoundError:
+        return {"estado": "livre", "info": None, "motivo": "sem arquivo de trava"}, None
     except PermissionError as e:
         return {"estado": "indisponivel", "info": None,
                 "erro": {"errno": e.errno, "winerror": getattr(e, "winerror", None)},
                 "motivo": f"o sistema negou a leitura da trava por {_LEITURA_ORCAMENTO_S * 1000:.0f} ms (errno {e.errno}, "
-                          f"winerror {getattr(e, 'winerror', None)}): outro processo está gravando a trava agora; espere"}
+                          f"winerror {getattr(e, 'winerror', None)}): outro processo está gravando a trava agora; espere"}, None
+    return _diagnosticar(texto), texto
+
+
+def _diagnosticar(texto: str) -> dict:
     try:
         info = json.loads(texto)
         pid = int(info["pid"])
@@ -110,6 +130,12 @@ def estado(caminho: str) -> dict:
     if info.get("host") and info["host"] != socket.gethostname():
         return {"estado": "viva", "info": info, "motivo": f"dono em outra máquina ({info['host']}): não dá para verificar"}
     if pid == os.getpid():
+        # F07: o MESMO número de pid não basta. Se a trava traz o horário de criação do dono e ele não é o deste
+        # processo, o dono original morreu e o sistema reaproveitou o pid justamente para nós.
+        meu = _criacao_processo(pid)
+        if info.get("inicio") is not None and meu and abs(meu - float(info["inicio"])) > _CRIACAO_TOLERANCIA_S:
+            return {"estado": "morta", "info": info,
+                    "motivo": f"pid {pid} é o deste processo, mas a trava é de outro (criado em outro horário): dono original morreu"}
         return {"estado": "propria", "info": info, "motivo": "dono é este processo"}
     try:
         criacao = _criacao_processo(pid)
@@ -152,18 +178,60 @@ def _criar_com_conteudo(caminho: str, dados: bytes):
             os.remove(tmp)
 
 
+def _remover_se_for(caminho: str, observado: str | None, log: str | None = None) -> bool:
+    """F06: remove a trava SÓ se ela ainda é a que foi observada (mesmo texto: pid, início e nonce da aquisição).
+
+    Entre ler e remover, outro processo pode ter assumido a trava; um os.remove direto apagaria a trava NOVA.
+    Aqui o arquivo é primeiro tirado do lugar (rename, uma operação só), conferido e só então apagado; se já é de
+    outro dono, volta para o lugar. True = não há mais trava daquele dono; False = a trava mudou e foi preservada."""
+    if observado is None:
+        return not os.path.exists(caminho)
+    tmp = f"{caminho}.{os.getpid()}.{uuid.uuid4().hex[:8]}.saindo"
+    try:
+        os.rename(caminho, tmp)
+    except FileNotFoundError:
+        return True  # alguém já a removeu
+    except OSError:
+        return False  # o sistema não deixou mexer agora: nada removido
+    try:
+        with open(tmp, encoding="utf-8") as f:
+            atual = f.read()
+    except OSError:
+        atual = None
+    if atual == observado:
+        os.remove(tmp)
+        return True
+    try:  # mudou de dono entre a leitura e a remoção: devolve a trava nova ao lugar, intacta
+        if sys.platform == "win32":
+            os.rename(tmp, caminho)
+        else:
+            os.link(tmp, caminho)
+            os.remove(tmp)
+    except OSError as e:  # um terceiro criou outra trava neste instante: a que tiramos do lugar perde; fica registrado
+        if log:
+            _registrar(log, {"evento": "trava_conflito", "motivo": f"não deu para devolver a trava ao lugar ({e})",
+                             "conteudo": (atual or "")[:300]})
+        if os.path.exists(tmp):
+            os.remove(tmp)
+    return False
+
+
 def pegar(caminho: str, nome: str, log: str | None = None):
     """Toma a trava. Se o dono está comprovadamente MORTO, assume a trava e registra. Viva ou corrompida: recusa."""
     os.makedirs(os.path.dirname(caminho) or ".", exist_ok=True)
-    for _ in range(2):
+    for _ in range(3):
+        info = _info_propria(nome)
         try:
-            _criar_com_conteudo(caminho, json.dumps(_info_propria(nome)).encode())
+            _criar_com_conteudo(caminho, json.dumps(info).encode())
+            _MINHAS[_chave(caminho)] = info["nonce"]
             return
         except FileExistsError:
-            st = estado(caminho)
+            st, observado = _observar(caminho)
+            if st["estado"] == "livre":
+                continue
             if st["estado"] in ("propria", "morta"):
-                os.remove(caminho)
-                if st["estado"] == "morta" and log:
+                # só sai a trava que foi OBSERVADA; se trocou de dono no meio, a próxima volta reavalia a nova
+                if _remover_se_for(caminho, observado, log) and st["estado"] == "morta" and log:
                     _registrar(log, {"evento": "trava_assumida", "motivo": st["motivo"], "dono_anterior": st["info"]})
                 continue
             if st["estado"] == "corrompida":
@@ -173,10 +241,41 @@ def pegar(caminho: str, nome: str, log: str | None = None):
     raise RuntimeError("não consegui a trava do Unreal")
 
 
-def soltar(caminho: str):
+@contextlib.contextmanager
+def exclusiva(caminho: str, nome: str, prazo_s: float = 20.0, log: str | None = None):
+    """Exclusão CURTA entre processos e entre threads (ex.: a admissão de uma tentativa na pasta da rodada).
+
+    Diferente de pegar(): não é reentrante (o mesmo processo também espera) e quem chega aguarda até `prazo_s`;
+    depois disso, TravaOcupada. Só um dono comprovadamente MORTO é substituído, com a remoção conferida (F06)."""
+    os.makedirs(os.path.dirname(caminho) or ".", exist_ok=True)
+    texto = json.dumps(_info_propria(nome))
+    fim = time.monotonic() + prazo_s
+    while True:
+        try:
+            _criar_com_conteudo(caminho, texto.encode())
+            break
+        except (FileExistsError, PermissionError):
+            st, observado = _observar(caminho)
+            if st["estado"] == "morta" and _remover_se_for(caminho, observado, log):
+                continue
+            if time.monotonic() >= fim:
+                raise TravaOcupada(f"{nome}: outra operação em curso ({st['motivo']}); espere e repita", st) from None
+            time.sleep(0.02)
     try:
-        if json.load(open(caminho, encoding="utf-8")).get("pid") == os.getpid():
-            os.remove(caminho)
+        yield
+    finally:
+        _remover_se_for(caminho, texto)
+
+
+def soltar(caminho: str):
+    """Solta SÓ a aquisição que este processo fez com pegar() (F07): pid igual não basta, o nonce tem de ser o
+    que ficou guardado na hora de pegar."""
+    meu = _MINHAS.get(_chave(caminho))
+    try:
+        texto = _ler(caminho)
+        info = json.loads(texto)
+        if meu and info.get("pid") == os.getpid() and info.get("nonce") == meu and _remover_se_for(caminho, texto):
+            _MINHAS.pop(_chave(caminho), None)
     except Exception:  # noqa: BLE001
         pass
 
@@ -184,13 +283,11 @@ def soltar(caminho: str):
 def liberar_orfa(caminho: str, log: str, corrompida: bool = False) -> dict:
     """Libera a trava SOMENTE se o dono está comprovadamente morto (ou, com corrompida=True, se o arquivo está
     corrompido). Idade nunca é prova. Toda decisão é registrada."""
-    st = estado(caminho)
+    st, observado = _observar(caminho)
     liberar = st["estado"] == "morta" or (st["estado"] == "corrompida" and corrompida)
-    if liberar:
-        try:
-            os.remove(caminho)
-        except FileNotFoundError:
-            pass
+    if liberar and not _remover_se_for(caminho, observado, log):
+        liberar = False  # F06: a trava mudou de dono entre a leitura e a remoção; a nova foi preservada
+        st = dict(st, estado="mudou", motivo="a trava mudou de dono entre a leitura e a remoção: nada foi removido")
     decisao = {"evento": "liberar_trava_orfa", "liberada": liberar, "estado": st["estado"], "motivo": st["motivo"],
                "dono": st["info"], "corrompida_confirmada": corrompida}
     _registrar(log, decisao)

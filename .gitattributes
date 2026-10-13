@@ -6,3 +6,6 @@ editor_python/director_tools/toolset.py text eol=crlf
 tools/fila_executor.py text eol=lf
 # Atalhos de dois cliques do Talis: o cmd.exe precisa de CRLF
 atalhos/*.bat text eol=crlf
+# Fixtures com hash conferido por teste (ORIGEM.json): bytes exatos em qualquer copia limpa
+src/fixtures/** -text
+biblioteca/** -text

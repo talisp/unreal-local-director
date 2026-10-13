@@ -108,11 +108,20 @@ def carregar_historico(pasta_relatorios: str, pasta_experimentos: str) -> list:
                           "quando": 0.0, "linha": None})
     ev_arq = os.path.join(pasta_experimentos, "eventos.jsonl")
     if os.path.exists(ev_arq):
-        for i, linha in enumerate(open(ev_arq, encoding="utf-8")):
-            if linha.strip():
+        with open(ev_arq, encoding="utf-8", errors="replace") as f:
+            linhas = f.readlines()
+        for i, linha in enumerate(linhas):
+            if not linha.strip():
+                continue
+            try:
                 t = de_evento(json.loads(linha))
-                if t:
-                    itens.append(dict(t, ordem=f"{i:09d}"))
+            except (ValueError, TypeError, AttributeError):
+                # B1: linha cortada por queda não derruba a leitura nem some: entra como registro incompleto (igual
+                # ao relatório ilegível acima) e as linhas íntegras continuam valendo
+                t = {"fonte": "experimento", "ref": f"eventos.jsonl#{i + 1}", "tipo": "incompleta", "falta": ["json"],
+                     "quando": 0.0, "linha": None}
+            if t:
+                itens.append(dict(t, ordem=f"{i:09d}"))
     # mesmo segundo: vale a ORDEM DO ARQUIVO dentro de cada fonte (06/10: corrida_iniciada e corrida no mesmo segundo
     # foram invertidas pela referência e a corrida parecia ainda rodando)
     return sorted(itens, key=lambda t: (t["quando"], t["fonte"], t.get("ordem") or ""))

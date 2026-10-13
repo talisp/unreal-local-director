@@ -82,8 +82,10 @@ def ensaio_texto(pasta: str) -> str:
             "Pare (sem variações no ensaio).\n")
 
 
-def gerar_pedido(cena: dict, arq_cena_rel: str, pasta_rel: str, modo: str) -> str:
-    modelo = open(PROTOCOLO, encoding="utf-8").read().split("\n---\n", 1)[1].strip()
+def gerar_pedido(cena: dict, arq_cena_rel: str, pasta_rel: str, modo: str,
+                 protocolo: str | None = None) -> str:
+    with open(protocolo or PROTOCOLO, encoding="utf-8") as f:
+        modelo = f.read().split("\n---\n", 1)[1].strip()
     cmd = (f'cd "{RAIZ_BASH}" && FILA_PASTA="{pasta_rel}" FILA_CENA="{arq_cena_rel}" '
            f'"{RAIZ_BASH}/venv/Scripts/python.exe" tools/fila_executor.py')
     escolha = (f'cd "{RAIZ_BASH}" && "{RAIZ_BASH}/venv/Scripts/python.exe" tools/escolha.py gerar {pasta_rel} '
@@ -114,9 +116,24 @@ def checar_ambiente(netstat: str, trava_existe: bool) -> list:
     return m
 
 
-def lancar(pedido_abs: str, pasta_abs: str, cena: dict, modo: str) -> dict:
+def lancar(pedido_abs: str, pasta_abs: str, cena: dict, modo: str, campanha: str | None = None) -> dict:
     lim = LIMITES_MODO[modo]
     flags = 0x00000008 | 0x00000200  # processo solto: continua se o terminal fechar
+    if campanha:
+        from unreal_macros import campanha as CP
+        c = CP.ler(pasta_abs)
+        if c['id'] != campanha or CP.guarda(pasta_abs):
+            raise ValueError('campanha não autorizada/segura para lançamento')
+        with open(os.path.join(pasta_abs, 'vigia_saida.txt'), 'a', encoding='utf-8') as saida:
+            vigia = subprocess.Popen([PY, os.path.join(RAIZ, 'tools', 'vigia_dev.py'), '--perfil', PERFIL,
+                                      '--rodada', pasta_abs, '--pedido', pedido_abs, '--campanha', campanha,
+                                      '--pasta', os.path.join(pasta_abs, 'vigia'), '--sessao', 'nenhuma',
+                                      '--ate', cena['ate'], '--max-turns', str(lim['max_turns']),
+                                      '--run-budget', str(lim['run_budget']), '--intervalo', '30'],
+                                     cwd=RAIZ, stdout=saida, stderr=subprocess.STDOUT,
+                                     stdin=subprocess.DEVNULL, creationflags=flags)
+        return {'vigia_pid': vigia.pid, 'modo': modo, 'limites': lim,
+                'quando': dt.datetime.now().isoformat(timespec='seconds'), 'campanha': campanha}
     sessao = subprocess.Popen(["cmd", "/c", HERMES, "-p", PERFIL, "chat", "--query-file", pedido_abs, "-Q",
                                "--max-turns", str(lim["max_turns"]), "--run-budget", str(lim["run_budget"])],
                               stdout=open(os.path.join(pasta_abs, "sessao_inicial.txt"), "w", encoding="utf-8"),

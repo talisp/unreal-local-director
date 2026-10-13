@@ -1,5 +1,27 @@
 # Changelog
 
+## v0.0.6 — versão corretiva (publicada em 13/10/2026, tag `v0.0.6`, com o "sim" do Talis)
+Corrige os 29 apontamentos da auditoria Astra de 10/10 e os herdados (F02–F11, E4, B1, B6, N1), em 7 lotes, cada um
+com teste que reproduz o defeito antes da correção. Sem funções novas. Plano: `docs/PLANO_v006_RETOMADA.md`.
+
+- **Cena (L1):** o executor só apaga o que é comprovadamente dele (prefixo não prova propriedade; sobra de execução que caiu só é limpa se registrada); `cena_ok` compara caminho, rótulo, classe, posição, rotação e escala e declara o alcance; limpeza só vale com confirmação positiva; fotos antes/depois em `evidencias/`.
+- **Reservas (L2):** admissão exclusiva por rodada; autorização do filho amarrada ao conteúdo da receita; `estado.json` perdido não vira rodada nova e as consultas não escrevem; guarda da campanha casa início e fim um a um; trava: só sai a aquisição observada e `soltar` só solta a aquisição deste processo.
+- **Sucesso (L3):** `passou` é aprovação operacional (medida + nenhuma falha depois + cena restaurada); `fila.sucesso` é a única apuração (3 tentativas distintas, nas mesmas condições e versões); o ensaio é julgado pelo contrato do ensaio.
+- **Régua (L4), sem mudar limites nem quota:** coordenada não finita invalida a medida; a troca é decidida pelos valores completos (o arredondamento é só para mostrar); pé que começa no ar não conta como saída do chão; aceno não soma continuidade através de ponte; a quota de exploração não deixa mais a rodada sem saída; `turn_deg` booleano/NaN recusado.
+- **Supervisão (L5):** a vigia de campanha só aceita o encerramento da própria campanha; `--seco` não escreve nada; campanha usa só o prazo absoluto; trava órfã comprovada é liberada; a vigia pode ser retomada sem criar outra sessão; relatório provisório enquanto houver tentativa em curso.
+- **Evidência (L6):** amostras de toda tentativa em disco; histórico corrompido bloqueia mas não some do relatório; vídeo só existe completo; reimportar um bloco não apaga o link do vídeo; diário não mistura gates de atores nem aceita `extra` no lugar do relatório; supervisor não cai com registro truncado.
+- **Gate (L7):** 12 suítes que ficavam fora entram na bateria (33 suítes); o exportador leva os módulos da campanha e pode gravar num destino isolado (`ULD_EXPORT_DEST`).
+- **Consequência (D25):** a régua mudou de versão. O bloco `fdb93eafc4a5` e as trocas medidas em 07/10 respondem "medir de novo" nas condições de agora. Recalculado offline com a régua corrigida, o bloco continua com nota 0 nas 3 tentativas, mas a validação exige medir de novo no Unreal.
+- **13/10, depois da primeira noite com a v0.0.6** (28 tentativas reais, 28 com a cena restaurada, nenhuma falha do programa): o `/director-noite` ganhou o **modo de teste da versão**. A lista do que a versão mudou mora com o código (`tools/testes_da_versao.json`); o programa confere nos registros da campanha o que foi coberto e recusa o fechamento por "esgotamento" enquanto faltar teste; o executor registra as recusas de admissão (`recusas.jsonl`); a vigia de laboratório conta experimento concluído como progresso.
+- **Não certificado:** autonomia longa do Qwen, o modo de teste da versão rodando ao vivo, vídeo real com esta versão, outras malhas (Marcos).
+
+## v0.0.5 — etapa U1/U2 local, NÃO publicada nem aprovada como versão completa
+- **U1 J1/A1:** macros independentes não conectam; preparação/conexão viram relatório negativo; pausa, prazo, câmera e trava preservados. Regressão permanente 10/10; suítes recuperadas bloco3 16/16, supervisor 10/10, bloco5 4/4 integradas à bateria.
+- **U2 F01/J4:** API nativa, sem `tasklist` localizado, distingue VIVO/MORTO/DESCONHECIDO. Reserva desconhecida preservada e consumidores não anunciam processo vivo. Regressão 12/12; executor 6/6 e rotina 9/9.
+- **Servidor Runtime novo (stdio configurado):** 3/3 buscas independentes offline (zero chamadas Unreal), conexão bloqueada recusada com relatório; inspeção real 3/3 no UE 5.8.3, cena idêntica 86 → 86, trava livre. Não é teste conversacional da LLM nem atualização de servidores já residentes.
+- **Bateria da árvore modificada:** reprovada; zero novos lint/tipos, propriedades 13/13, mas biblioteca 11/14 e Astra legado 4/5 (dados/implementação anteriores preservados). Não afrouxada a régua, não corrigidos J3 ou biblioteca nesta etapa; o marco permanece NÃO aprovado.
+- **Público:** candidata isolada de código/texto em preparação; módulo `processos.py` incluído no exportador. Sem mídia do filme, sem tag/commit/push/release. Evidências privadas em `work/v005/implementacao/`; agregado publicável em `docs/v005_resultados/`.
+
 ## v0.0.4-wip — a LLM propõe; o programa mede, registra e protege (em construção, 08/10)
 Plano: `docs/PLANO_PROXIMA_VERSAO.md` (privado). **Não terminada:** o teste grande no Unreal (cena com variações) está pronto sem o Unreal, mas ainda não rodou ao vivo; falta o fechamento da versão.
 

@@ -63,7 +63,7 @@ def checar(cliente, toolset: str, tool: str, args: dict):
         _rotulos.pop(_ref(args.get("actor")), None)
         return
     if tool in ("remove_from_scene", "set_actor_transform"):
-        _exigir_teste(cliente, _ref(args.get("actor")), tool)
+        _exigir_teste(cliente, _ref(args.get("actor")) or "", tool)
         return
     if tool == "set_properties":
         ref = _ref(args.get("instance")) or ""

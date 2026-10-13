@@ -43,14 +43,18 @@ def validar_receita(receita: dict) -> list:
     if not isinstance(passos, list) or not passos:
         return ["receita sem 'passos'"]
     for i, p in enumerate(passos):
-        if not isinstance(p, dict) or not str(p.get("clipe", "")).strip():
+        if not isinstance(p, dict):
+            m.append(f"passo {i}: falta 'clipe' (nome da biblioteca, ex. Sit_To_Stand)")
+            continue
+        if not str(p.get("clipe", "")).strip():
             m.append(f"passo {i}: falta 'clipe' (nome da biblioteca, ex. Sit_To_Stand)")
         if p.get("papel") not in PAPEIS + ("ponte",):
             m.append(f"passo {i}: 'papel' tem de ser um de {PAPEIS + ('ponte',)}")
         extra = set(p) - {"clipe", "papel", "turn_deg"}
         if extra:
             m.append(f"passo {i}: campos não aceitos {sorted(extra)} (só clipe, papel, turn_deg)")
-        if not isinstance(p.get("turn_deg", 0), (int, float)) or abs(p.get("turn_deg", 0)) > 180:
+        giro = p.get("turn_deg", 0)  # F11: True e NaN passavam (bool é int; abs(nan) > 180 é falso)
+        if isinstance(giro, bool) or not isinstance(giro, (int, float)) or not math.isfinite(giro) or abs(giro) > 180:
             m.append(f"passo {i}: turn_deg entre -180 e 180")
     ordem = [PAPEIS.index(p["papel"]) for p in passos if isinstance(p, dict) and p.get("papel") in PAPEIS]
     if ordem != sorted(ordem):
@@ -99,9 +103,14 @@ def _trocas(am: dict, faixas: list) -> list:
             continue
         saltos = {n: math.dist(oa[n], ob[n]) for n in OSSOS}
         pior = max(saltos, key=lambda k: saltos[k])
+        virada = abs(_dif(ang_quadril(oa), ang_quadril(ob)))
+        # A13: quem decide se a troca passou são os valores COMPLETOS contra os limites; o arredondamento é só para
+        # mostrar (10,004 cm aparece como 10,0, mas está acima de 10).
+        excede = [k for k, v in (("quadril_cm", saltos["Hips"]), ("osso_cm", saltos[pior]), ("virada_deg", virada))
+                  if v > LIM[k]]
         out.append({"troca": i, "valida": True, "quadros": [a["ate"] - 1, b["de"]],
                     "quadril_cm": round(saltos["Hips"], 2), "pior_osso": pior, "pior_osso_cm": round(saltos[pior], 2),
-                    "virada_deg": round(abs(_dif(ang_quadril(oa), ang_quadril(ob))), 2),
+                    "virada_deg": round(virada, 2), "excede": excede,
                     "ossos_antes": oa, "ossos_depois": ob})
     return out
 
@@ -162,13 +171,15 @@ def _andar(seq: list) -> dict:
     desloc = math.hypot(h1[0] - h0[0], h1[1] - h0[1])
     passos = {}
     for pe in ("LeftFoot", "RightFoot"):
-        zmin, n, apoiado = min(o[pe][2] for _, o in seq), 0, True
+        # A14: o apoio só vale depois de OBSERVADO (uma amostra a ≤ 3 cm). Pé que começa o trecho no ar não conta
+        # como "saiu do chão": a saída anterior não está nas amostras.
+        zmin, n, apoiado = min(o[pe][2] for _, o in seq), 0, False
         for _, o in seq:
             z = o[pe][2] - zmin
-            if apoiado and z >= LIM["pe_no_ar_cm"]:
-                n, apoiado = n + 1, False
-            elif not apoiado and z <= LIM["pe_apoiado_cm"]:
+            if z <= LIM["pe_apoiado_cm"]:
                 apoiado = True
+            elif apoiado and z >= LIM["pe_no_ar_cm"]:
+                n, apoiado = n + 1, False
         passos[pe] = n
     ok = desloc >= LIM["andar_cm"] and min(passos.values()) >= LIM["andar_passos_por_pe"]
     return {"passou": ok, "deslocamento_cm": round(desloc, 1), "pe_saiu_do_chao": passos}
@@ -187,18 +198,51 @@ def _parar(seq: list, total: int) -> dict:
             "dedo_max_cm": round(max(dedos), 1)}
 
 
+def _vetor_finito(v) -> bool:
+    return (isinstance(v, (list, tuple)) and len(v) == 3
+            and all(not isinstance(x, bool) and isinstance(x, (int, float)) and math.isfinite(x) for x in v))
+
+
+def _acenar_por_trecho(amostras: list, faixas: list, papeis: list) -> dict:
+    """A15: o aceno é medido dentro de cada trecho CONTÍNUO de faixas 'acenar'. Faixas de aceno vizinhas formam um
+    trecho só; uma ponte (ou outro papel) no meio separa. Antes, as amostras de todos os acenos eram juntadas numa
+    lista e o intervalo da ponte, que nem estava nela, contava como continuidade."""
+    trechos, atual = [], []
+    for i, papel in enumerate(papeis):
+        if papel == "acenar":
+            atual += [(q, o) for q, o in amostras if _faixa_de(q, faixas) == i]
+        elif atual:
+            trechos.append(atual)
+            atual = []
+    if atual:
+        trechos.append(atual)
+    melhor = None
+    for trecho in trechos:
+        r = _acenar(trecho)
+        if r["passou"]:
+            return r
+        if melhor is None or r.get("amplitude_lateral_cm", -1) > melhor.get("amplitude_lateral_cm", -1):
+            melhor = r
+    return melhor or _acenar([])
+
+
 def avaliar(amostras: list, faixas: list, papeis: list, fps: int) -> dict:
     """Nota (menor é melhor; 0 = passou tudo). Medição incompleta (osso faltando) NÃO vira nota: valida=False."""
     faltando = sorted({(q, n) for q, o in amostras for n in OSSOS if n not in o or o[n] is None})
     if faltando:
         return {"valida": False, "nota": None, "motivo": f"ossos faltando em {len(faltando)} leituras, ex. {faltando[:3]}"}
+    # A12: coordenada tem de ser [x, y, z] de números finitos ANTES de qualquer conta (NaN passava por max e dist)
+    ruins = sorted({(q, n) for q, o in amostras for n in OSSOS if not _vetor_finito(o[n])})
+    if ruins:
+        return {"valida": False, "nota": None,
+                "motivo": f"coordenadas inválidas (não são [x, y, z] finitos) em {len(ruins)} leituras, ex. {ruins[:3]}"}
     am = dict(amostras)
     trocas = _trocas(am, faixas)
     if any(not t["valida"] for t in trocas):
         return {"valida": False, "nota": None, "motivo": "troca sem amostra", "trocas": trocas}
     por = {p: [(q, o) for q, o in amostras if papeis[_faixa_de(q, faixas)] == p] for p in PAPEIS}
     total = faixas[-1]["ate"]
-    intencoes = {"levantar": _levantar(por["levantar"]), "acenar": _acenar(por["acenar"]),
+    intencoes = {"levantar": _levantar(por["levantar"]), "acenar": _acenar_por_trecho(amostras, faixas, papeis),
                  "andar": _andar(por["andar"]), "parar": _parar(amostras, total)}
     duracao = total / fps
     nota = 0.0
@@ -206,6 +250,8 @@ def avaliar(amostras: list, faixas: list, papeis: list, fps: int) -> dict:
         t["nota"] = round(max(0, t["quadril_cm"] - LIM["quadril_cm"]) / LIM["quadril_cm"]
                           + max(0, t["pior_osso_cm"] - LIM["osso_cm"]) / LIM["osso_cm"]
                           + max(0, t["virada_deg"] - LIM["virada_deg"]) / LIM["virada_deg"], 3)
+        if t["excede"] and t["nota"] == 0:
+            t["nota"] = 0.001  # A13: passou do limite por menos do que o arredondamento mostra; não é nota 0
         nota += t["nota"]
     nota += sum(1 for r in intencoes.values() if not r["passou"]) + (duracao > LIM["duracao_s"])
     return {"valida": True, "nota": round(nota, 3), "trocas": trocas, "intencoes": intencoes,
@@ -265,20 +311,41 @@ def checar_regras(receita: dict, tentativas: list, fechadas: dict) -> list:
         m.append(f"já há {len(vivas)} linhagens vivas (máx. {REGRAS['linhagens_vivas_max']}): feche uma antes de abrir {nome}")
     if nome not in lin and len(lin) >= REGRAS["linhagens_total_max"]:
         m.append(f"já houve {len(lin)} linhagens (máx. {REGRAS['linhagens_total_max']}): escreva o FECHAMENTO")
+    # A16: a quota é a mesma (3 explorações em cada 10). A obrigação é ANTECIPADA quando as vagas que sobram na
+    # janela já não bastam para completá-la (antes só se conferia na 10ª, e nove ajustes seguidos deixavam a rodada
+    # sem nenhuma próxima tentativa válida). Uma exploração nunca é recusada por esta regra: é ela que repara a janela.
     ult = tentativas[-9:]
-    if len(ult) == 9 and sum(t.get("tipo") == "exploracao" for t in ult) + (receita.get("tipo") == "exploracao") \
-            < REGRAS["exploracao_min_em_10"]:
+    vagas_depois = 9 - len(ult)  # tentativas que ainda cabem na janela de 10 depois desta
+    if receita.get("tipo") != "exploracao" and \
+            sum(t.get("tipo") == "exploracao" for t in ult) + vagas_depois < REGRAS["exploracao_min_em_10"]:
         m.append(f"menos de {REGRAS['exploracao_min_em_10']} explorações nas últimas 10: esta tem de ser 'exploracao'")
     return m
 
 
+def elegivel(t: dict) -> bool:
+    """A tentativa conta como repetição de sucesso? Medida com nota 0 (número, não booleano) E nada que negue a
+    aprovação: avaliação inválida, cena não restaurada (cena_ok False) ou tentativa não aprovada (passou False: houve
+    falha depois da medida). Campo ausente não nega: registros antigos não tinham esses campos."""
+    nota = t.get("nota")
+    return (type(nota) in (int, float) and nota == 0 and t.get("passou") is not False
+            and t.get("cena_ok") is not False and (t.get("avaliacao") or {}).get("valida") is not False)
+
+
 def sucesso(tentativas: list) -> dict | None:
-    """Conseguiu = a mesma receita (assinatura) com nota 0 em 3 tentativas válidas."""
-    cont = {}
-    for t in tentativas:
-        if t.get("nota") == 0:
-            cont[t["assinatura"]] = cont.get(t["assinatura"], 0) + 1
-    for a, n in cont.items():
-        if n >= REGRAS["repeticoes_sucesso"]:
-            return {"assinatura": a, "vezes": n}
+    """Conseguiu = a mesma receita (assinatura) com nota 0 em 3 tentativas válidas: DISTINTAS (a mesma linha repetida
+    não vale três), elegíveis (ver elegivel) e medidas nas MESMAS condições, fps e versões. O mesmo número de
+    tentativa com conteúdos diferentes invalida a apuração daquela receita. É a única definição de sucesso: executor,
+    campanha, biblioteca, painel e rotina chamam esta função."""
+    grupos = {}
+    for i, t in enumerate(tentativas):
+        if not elegivel(t):
+            continue
+        chave = (t["assinatura"], json.dumps([t.get("condicoes"), t.get("fps"), t.get("versoes")], sort_keys=True, default=str))
+        quem = (t.get("n"), t.get("execucao")) if t.get("n") is not None else ("sem número", i)
+        grupos.setdefault(chave, {}).setdefault(quem, []).append(t)
+    for (a, _), g in grupos.items():
+        if any(x != v[0] for v in g.values() for x in v[1:]):
+            continue  # duplicata conflitante: não dá para saber qual é a medida
+        if len(g) >= REGRAS["repeticoes_sucesso"]:
+            return {"assinatura": a, "vezes": len(g)}
     return None

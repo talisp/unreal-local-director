@@ -46,7 +46,14 @@ SUITES = ("testes_diario", "testes_bloco2", "testes_v003_bloco1", "testes_v003_b
           "testes_biblioteca", "testes_fila", "testes_fila_executor", "testes_vigia_dev",
           "testes_offline", "testes_receita", "testes_ideias",
           "testes_junior", "testes_astra", "testes_cena", "testes_director",
-          "testes_rotina")  # sem Unreal (nenhuma abre a 8001)
+          "testes_rotina", "testes_envelope_u1", "testes_bloco3", "testes_bloco4_sup",
+          "testes_bloco5", "testes_processos_u2",
+          # v0.0.6 (L7): as suítes que ficavam FORA do gate (a regressão do L0 só apareceu rodando uma delas à mão)
+          "testes_director_noite", "testes_director_noite_integracao", "testes_director_laboratorio",
+          "testes_v006_l0", "testes_v006_l1", "testes_v006_l2", "testes_v006_l3", "testes_v006_l4", "testes_v006_l5",
+          "testes_v006_l6", "testes_teste_versao", "docs/skills/test_astra_pipeline", "docs/skills/test_verificar_campanha")
+# sem Unreal (nenhuma abre a 8001). Nome com "/" = caminho a partir da raiz; sem "/" = arquivo de src/.
+# Fora do gate, de propósito: docs/skills/test_skills_agressivas.py (precisa do Python e do HERMES_HOME do Hermes).
 
 
 def env_offline() -> dict:
@@ -178,25 +185,37 @@ def avaliar_suite(nome: str, codigo_saida: int, texto: str) -> dict:
     ultima = linhas[-1] if linhas else ""
     m = re.search(r"(\d+)\s*/\s*(\d+)$", ultima)
     passou, total = (int(m.group(1)), int(m.group(2))) if m else (0, 0)
+    if m is None:  # suíte em unittest: "Ran N tests" e, se falhou, "FAILED (failures=a, errors=b)"
+        m = re.search(r"^Ran (\d+) tests? in ", texto, re.M)
+        if m:
+            total = int(m.group(1))
+            f = re.search(r"^FAILED \((.*?)\)", texto, re.M)
+            ruins = sum(int(x) for x in re.findall(r"(?:failures|errors)=(\d+)", f.group(1))) if f else 0
+            passou = total - ruins if (f or re.search(r"^OK\b", texto, re.M)) else 0  # sem OK nem FAILED: não passou
     ok = codigo_saida == 0 and m is not None and total > 0 and passou == total
     if ok:
         detalhe = f"{passou}/{total} casos"
     elif m and total == 0:
         detalhe = f"0 casos (saiu com {codigo_saida}): rodada vazia conta como falha"
     elif m:
-        falhas = [x for x in linhas if x.startswith("FALHA")][:1]  # "FALHA" (bloco2) e "FALHOU"
+        falhas = [x for x in linhas if x.startswith(("FALHA", "FAIL:", "ERROR:"))][:1]  # "FALHA"/"FALHOU" e unittest
         detalhe = f"{passou}/{total} casos, saiu com {codigo_saida}" + (f"; {falhas[0][:150]}" if falhas else "")
     else:
         detalhe = f"saiu com {codigo_saida} sem contagem; última linha: {ultima[:150]}"
-    return {"nome": f"suite:{nome}", "ok": ok, "novos": 0 if ok else max(1, total - passou), "detalhe_curto": detalhe}
+    return {"nome": f"suite:{nome.rsplit('/', 1)[-1]}", "ok": ok, "novos": 0 if ok else max(1, total - passou),
+            "detalhe_curto": detalhe}
 
 
 def rodar_suite(pasta: str, nome: str, trava_isolada: str) -> dict:
     # Python do .venv-ferramentas, -B (sem __pycache__ no worktree), offline e com uma trava só desta execução:
     # nem por engano uma suíte encosta na trava do Runtime.
     try:
-        r = _rodar([PY_FERR, "-B", f"{nome}.py"], cwd=os.path.join(pasta, "src"), prazo=PRAZO_SUITE_S,
-                   extra={"UNREAL_MACROS_TRAVA": trava_isolada, "PYTHONIOENCODING": "utf-8"})
+        # ULD_RUNTIME_PYTHON: o worktree não tem venv\; a suíte que sobe o servidor de macros (testes_biblioteca, B4)
+        # precisa do Python do Runtime (numpy, mcp), só para RODAR.
+        arquivo = os.path.join(pasta, *nome.split("/")) + ".py" if "/" in nome else f"{nome}.py"
+        r = _rodar([PY_FERR, "-B", arquivo], cwd=os.path.join(pasta, "src"), prazo=PRAZO_SUITE_S,
+                   extra={"UNREAL_MACROS_TRAVA": trava_isolada, "PYTHONIOENCODING": "utf-8",
+                          "ULD_RUNTIME_PYTHON": PY_RUNTIME})
     except subprocess.TimeoutExpired:
         return {"nome": f"suite:{nome}", "ok": False, "novos": 1, "detalhe_curto": f"passou de {PRAZO_SUITE_S} s"}
     return avaliar_suite(nome, r.returncode, (r.stdout + b"\n" + r.stderr).decode("utf-8", "replace"))

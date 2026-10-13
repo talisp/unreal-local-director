@@ -73,12 +73,20 @@ def carregar(pasta: str = PASTA) -> dict:
 
 
 def mesclar(pasta: str, novos: dict) -> dict:
-    """Junta registros novos aos da pasta, pelo `id` (o mesmo id substitui: importar duas vezes não duplica)."""
+    """Junta registros novos aos da pasta, pelo `id` (o mesmo id substitui: importar duas vezes não duplica).
+    E4 (qwen-junior, 10/10): ao substituir um BLOCO medido nas MESMAS condições obrigatórias, os links de vídeo já
+    gravados são mantidos (reimportar a rodada sem os mp4 no disco apagava a prova). Bloco de mesma receita medido em
+    outras condições (régua, escala, personagem...) não herda nada: a prova antiga não vale para a medida nova."""
     atual = carregar(pasta)
     contagem = {}
     for tipo in TIPOS:
         reg = atual[tipo]
         for r in novos.get(tipo, []):
+            antigo = reg.get(r["id"])
+            if tipo == "blocos" and antigo and \
+                    _chave_condicoes(antigo.get("condicoes") or {}) == _chave_condicoes(r.get("condicoes") or {}):
+                videos = [v for v in antigo.get("videos") or [] if v]
+                r = dict(r, videos=videos + [v for v in r.get("videos") or [] if v and v not in videos])
             reg[r["id"]] = r
         gravar_jsonl(os.path.join(pasta, f"{tipo}.jsonl"), reg.values())
         contagem[tipo] = len(reg)
@@ -144,7 +152,8 @@ def _blocos(tent: dict, trocas: list, fonte: str, pasta_rodada: str) -> tuple:
     obrigatórias (régua, personagem, escala...). Devolve (blocos, arquivos de amostras a copiar)."""
     grupos = {}
     for t in tent.values():
-        if t.get("nota") == 0 and (t.get("avaliacao") or {}).get("valida"):
+        # F09 (v0.0.6): a mesma elegibilidade do sucesso; nota 0 com cena não restaurada ou falha posterior não vira bloco
+        if F.elegivel(t) and (t.get("avaliacao") or {}).get("valida"):
             c = condicoes_fila(t.get("versoes") or {}, t.get("fps"), t.get("condicoes"))
             grupos.setdefault((t["assinatura"], _chave_condicoes(c)), []).append(t)
     out, arquivos = [], {}
@@ -213,6 +222,11 @@ def medir_troca(antes: dict, depois: dict, lim: dict | None = None) -> dict:
     v = round(abs(F._dif(F.ang_quadril(antes), F.ang_quadril(depois))), 2)
     nota = round(max(0, q - lim["quadril_cm"]) / lim["quadril_cm"] + max(0, p - lim["osso_cm"]) / lim["osso_cm"]
                  + max(0, v - lim["virada_deg"]) / lim["virada_deg"], 3)
+    # v0.0.6 (A13), igual à régua: quem decide são os valores completos; passou do limite por menos do que o
+    # arredondamento mostra não é nota 0. Nas medidas gravadas até a v0.0.5 isso não muda nenhum número (teste).
+    if nota == 0 and (saltos["Hips"] > lim["quadril_cm"] or saltos[pior] > lim["osso_cm"]
+                      or abs(F._dif(F.ang_quadril(antes), F.ang_quadril(depois))) > lim["virada_deg"]):
+        nota = 0.001
     return {"quadril_cm": q, "pior_osso": pior, "pior_osso_cm": p, "virada_deg": v, "nota": nota}
 
 
