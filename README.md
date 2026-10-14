@@ -1,5 +1,9 @@
 # unreal-local-director
 
+> ## ⚠️ Discontinued
+> This project (now called **"Antigo Director"**, the Old Director) is **no longer being developed**. Its successor is **[Director](https://github.com/talisp/Director)**.
+> The code and the published versions stay here for reference. An explanation of why will come later.
+
 **Turns human intent into verified actions in Unreal Engine, using a local LLM that, on its own, could not operate the engine reliably.**
 
 This is not "an AI tool for Unreal". The model is the thin part: it reads a plain-language request and picks from a catalogue of **ready-made, measured movements and macros**. The thick part is everything around it: the tools that **measure** the result (pose, feet, bones, collisions), **refuse** what they cannot do, **restore** the scene, and **notice when the agent is stuck**. The purpose is **reference videos** (blocking, character motion, camera) for video models such as **MiniMax H3** and **LTX 2.5**, without paying a frontier model for every click.
